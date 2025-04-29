@@ -952,3 +952,504 @@ public interface IntFunction<R> {
 * 오토박싱/언박싱으로 인한 성능 비용을 줄이기 위해
 * 자바 제네릭의 한계(제네릭은 primitive 타입을 직접 다를 수 없음)를 극복하기 위해
 
+# 람다 활용
+## 필터 만들기1
+```java
+public static void main(String[] args) {
+    List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+    // 짝수만 거르기
+    List<Integer> evenNumbers = filterEvenNumber(numbers);
+    System.out.println("evenNumbers = " + evenNumbers);
+
+    // 홀수만 거르기
+    List<Integer> oddNumbers = filterOddNumber(numbers);
+    System.out.println("oddNumbers = " + oddNumbers);
+}
+
+private static List<Integer> filterEvenNumber(List<Integer> numbers) {
+    List<Integer> filteredNumber = new ArrayList<>();
+    for (Integer number : numbers) {
+        if (number % 2 == 0) {
+            filteredNumber.add(number);
+        }
+    }
+    return filteredNumber;
+}
+
+private static List<Integer> filterOddNumber(List<Integer> numbers) {
+    List<Integer> filteredNumber = new ArrayList<>();
+    for (Integer number : numbers) {
+        if (number % 2 == 1) {
+            filteredNumber.add(number);
+        }
+    }
+    return filteredNumber;
+}
+```
+
+```java
+public static void main(String[] args) {
+    List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+    // 짝수만 거르기
+    List<Integer> evenNumbers = filter(numbers, x -> x % 2 == 0);
+    System.out.println("evenNumbers = " + evenNumbers);
+
+    // 홀수만 거르기
+    List<Integer> oddNumbers = filter(numbers, x -> x % 2 == 1);
+    System.out.println("oddNumbers = " + oddNumbers);
+
+}
+
+private static List<Integer> filter(List<Integer> numbers, Predicate<Integer> predicate) {
+    List<Integer> filteredNumber = new ArrayList<>();
+    for (Integer number : numbers) {
+        if (predicate.test(number)) {
+            filteredNumber.add(number);
+        }
+    }
+    return filteredNumber;
+}
+```
+
+## 필터 만들기2
+```java
+public static <T>List<T> filter(List<T> list, Predicate<T> predicate) {
+    List<T> filtered = new ArrayList<>();
+    for (T number : list) {
+        if (predicate.test(number)) {
+            filtered.add(number);
+        }
+    }
+    return filtered;
+}
+```
+
+## 맵 만들기1
+```java
+public static void main(String[] args) {
+
+    List<String> list = List.of("1", "12", "123", "1234");
+
+    List<Integer> numbers = mapStringToInteger(list);
+    System.out.println("numbers = " + numbers);
+
+    List<Integer> lengths = mapStringToLength(list);
+    System.out.println("lengths = " + lengths);
+}
+
+private static List<Integer> mapStringToInteger(List<String> list) {
+    List<Integer> numbers = new ArrayList<>();
+    for (String element : list) {
+        numbers.add(Integer.valueOf(element));
+    }
+    return numbers;
+}
+
+private static List<Integer> mapStringToLength(List<String> list) {
+    List<Integer> numbers = new ArrayList<>();
+    for (String element : list) {
+        numbers.add(element.length());
+    }
+    return numbers;
+}
+```
+
+```java
+public static void main(String[] args) {
+
+  List<String> list = List.of("1", "12", "123", "1234");
+
+  List<Integer> toNumber = map(list, s -> Integer.valueOf(s));
+  System.out.println("numbers = " + toNumber);
+
+  List<Integer> toLength = map(list, s -> s.length());
+  System.out.println("lengths = " + toLength);
+}
+
+private static List<Integer> map(List<String> list, Function<String, Integer> mapper) {
+    List<Integer> numbers = new ArrayList<>();
+    for (String element : list) {
+        numbers.add(mapper.apply(element));
+    }
+    return numbers;
+}
+```
+
+## 맵 제네릭 도입
+```java
+public class GenericMapper {
+
+    public static <T, R> List<R> map(List<T> list, Function<T, R> mapper) {
+        ArrayList<R> numbers = new ArrayList<>();
+        for (T element : list) {
+            numbers.add(mapper.apply(element));
+        }
+        return numbers;
+    }
+}
+```
+## 필터와 맵 활용1
+#### 필터와 맵 활용 - 문제1
+리스트에 있는 값 중에 짝수만 남기고, 남은 짝수 값의 2배를 반환해라.
+```java
+public class Ex1_Number {
+
+    public static void main(String[] args) {
+        // 짝수만 남기고, 남은 값의 2배를 반환
+        List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        List<Integer> directResult = direct(numbers);
+        System.out.println("directResult = " + directResult);
+        List<Integer> lambdaResult = lambda(numbers);
+        System.out.println("lambdaResult = " + lambdaResult);
+    }
+
+    static List<Integer> direct(List<Integer> numbers) {
+        List<Integer> result = new ArrayList<>();
+
+        for (Integer number : numbers) {
+            if (number % 2 == 0) {
+                result.add(number * 2);
+            }
+        }
+        
+        return result;
+    }
+
+    static List<Integer> lambda(List<Integer> numbers) {
+        List<Integer> filtered = GenericFilter.filter(numbers, n -> n % 2 == 0);
+        return GenericMapper.map(filtered, n -> n * 2);
+    }
+}
+```
+
+`direct()`와 `lambda()`는 서로 다른 프로그래밍 스타일을 보여준다.   
+`direct()`는 프로그램을 어떻게 수행해야 하는지 수행 절차를 명시한다.   
+`lambda()`는 무엇을 수행해야 하는지 원하는 결과에 초점을 맞춘다.
+
+#### 명령형 vs 선언적 프로그래밍
+명령형 프로그래밍(Imperative Programming)
+* 정의: 프로그래밍이 어떻게(How) 수행되어야 하는지, 즉 수행 절차를 명시하는 방식이다.
+* 특징:
+  * 단계별 실행: 프로그램의 각 단계를 명확하게 지정하고 순서대로 실행한다.
+  * 상태 변화: 프로그램의 상태(변수 값 등)가 각 단계별로 어떻게 변화하는지 명시한다.
+  * 낮은 추상화: 내부 구현을 직접 제어해야 하므로 추상화 수준이 낮다.
+  * 예시: 전통적인 for 루프, while 루프 등을 명시적으로 사용하는 방식
+  * 장점: 시스템의 상태와 흐름을 세밀하게 제어할 수 있다.
+
+선언적 프로그래밍(Declarative Programming)
+* 정의: 프로그램이 무엇(What)을 수행해야 하는지, 즉 원하는 결과를 명시하는 방식이다.
+* 특징:
+  * 문제 해결에 집중: 어떻게(How) 문제를 해결할지 보다 무엇을 원하는지에 초점을 맞춘다.
+  * 코드 간결성: 간결하고 읽기 쉬운 코드를 작성할 수 있다.
+  * 예시: `filter`, `map` 등 람다의 고차 함수를 활용
+* 장점: 코드가 간결하고, 의도가 명확하며, 유지보수가 쉬운 경우가 많다.
+
+## 필터와 맵 활용2
+#### 필터와 맵 활용 - 문제2
+```java
+public class Ex2_Student {
+
+    public static void main(String[] args) {
+        // 점수가 80점 이상인 학생의 이름을 추출해라.
+        List<Student> students = List.of(
+                new Student("Apple", 100),
+                new Student("Banana", 80),
+                new Student("Berry", 50),
+                new Student("Tomato", 40)
+        );
+        List<String> directResult = direct(students);
+        System.out.println("directResult = " + directResult);
+        List<String> lambdaResult = lambda(students);
+        System.out.println("lambdaResult = " + lambdaResult);
+    }
+
+    private static List<String> direct(List<Student> students) {
+        List<String> result = new ArrayList<>();
+        for (Student student : students) {
+            if (student.getScore() >= 80) {
+                result.add(student.getName());
+            }
+        }
+        return result;
+    }
+
+    private static List<String> lambda(List<Student> students) {
+        List<Student> filtered = GenericFilter.filter(students, student -> student.getScore() >= 80);
+        return GenericMapper.map(filtered, student -> student.getName());
+    }
+}
+```
+
+## 스트림 만들기1
+#### 스트림1
+필터와 맵을 사용할 때 데이터들이 흘러가면서 필터되고, 매핑된다.
+이렇듯 데이터가 흘러가면서 필터도 되고 매핑도 되는 클래스의 이름을 스트림(Stream)이라고 짓자
+```java
+public class MyStreamV1 {
+
+    private List<Integer> internalList;
+
+    public MyStreamV1(List<Integer> internalList) {
+        this.internalList = internalList;
+    }
+
+    public MyStreamV1 filter(Predicate<Integer> predicate) {
+        List<Integer> filtered = new ArrayList<>();
+        for (Integer number : internalList) {
+            if (predicate.test(number)) {
+                filtered.add(number);
+            }
+        }
+        return new MyStreamV1(filtered);
+    }
+
+    public MyStreamV1 map(Function<Integer, Integer> mapper) {
+        List<Integer> mapped = new ArrayList<>();
+        for (Integer number : internalList) {
+            mapped.add(mapper.apply(number));
+        }
+        return new MyStreamV1(mapped);
+    }
+
+    public List<Integer> toList() {
+        return internalList;
+    }
+}
+```
+```java
+public class MyStreamMainV1 {
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        List<Integer> result1 = returnValue(numbers);
+        System.out.println("result1 = " + result1);
+
+        List<Integer> result2 = methodChain(numbers);
+        System.out.println("result2 = " + result2);
+    }
+
+    private static List<Integer> methodChain(List<Integer> numbers) {
+        MyStreamV1 stream = new MyStreamV1(numbers);
+        MyStreamV1 result = stream.filter(n -> n % 2 == 0).map(n -> n * 2);
+        return result.toList();
+    }
+
+    private static List<Integer> returnValue(List<Integer> numbers) {
+        MyStreamV1 stream = new MyStreamV1(numbers);
+        MyStreamV1 filteredStream = stream.filter(n -> n % 2 == 0);
+        System.out.println("filteredStream = " + filteredStream.toList());
+
+        MyStreamV1 mappedStream = filteredStream.map(n -> n * 2);
+        System.out.println("mappedStream = " + mappedStream.toList());
+        return mappedStream.toList();
+    }
+}
+```
+
+## 스트림 만들기2
+```java
+public class MyStreamV2 {
+
+    private List<Integer> internalList;
+
+    private MyStreamV2(List<Integer> internalList) {
+        this.internalList = internalList;
+    }
+
+    public static MyStreamV2 of(List<Integer> internalList) {
+        return new MyStreamV2(internalList);
+    }
+
+    public MyStreamV2 filter(Predicate<Integer> predicate) {
+        List<Integer> filtered = new ArrayList<>();
+        for (Integer number : internalList) {
+            if (predicate.test(number)) {
+                filtered.add(number);
+            }
+        }
+        return new MyStreamV2(filtered);
+    }
+
+    public MyStreamV2 map(Function<Integer, Integer> mapper) {
+        List<Integer> mapped = new ArrayList<>();
+        for (Integer number : internalList) {
+            mapped.add(mapper.apply(number));
+        }
+        return new MyStreamV2(mapped);
+    }
+
+    public List<Integer> toList() {
+        return internalList;
+    }
+}
+```
+```java
+public class MyStreamV2Main {
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        List<Integer> result = MyStreamV2.of(numbers)
+                .filter(n -> n % 2 == 0)
+                .map(n -> n * 2).toList();
+
+        System.out.println("result = " + result);
+    }
+
+}
+```
+#### 정적 팩토리 메서드 - static factory method
+정적 팩토리 메서드는 객체 생성을 담당하는 static 메서드로, 생성자(constructor) 대신 인스턴스를 생성하고 반환하는 역할을 한다.
+즉, 일반적인 생성자(Constructor) 대신에 메서드 클래스의 인스턴스를 생성하고 초기화하는 로직을 캡슐화 하여 정적(static) 메서드이다.
+
+## 스트림 만들기3
+```java
+public class MyStreamV3<T> {
+
+    private List<T> internalList;
+
+    private MyStreamV3(List<T> internalList) {
+        this.internalList = internalList;
+    }
+
+    public static <T> MyStreamV3<T> of(List<T> internalList) {
+        return new MyStreamV3<>(internalList);
+    }
+
+    public MyStreamV3<T> filter(Predicate<T> predicate) {
+        List<T> filtered = new ArrayList<>();
+        for (T number : internalList) {
+            if (predicate.test(number)) {
+                filtered.add(number);
+            }
+        }
+        return MyStreamV3.of(filtered);
+    }
+
+    public <R> MyStreamV3<R> map(Function<T, R> mapper) {
+        List<R> mapped = new ArrayList<>();
+        for (T number : internalList) {
+            mapped.add(mapper.apply(number));
+        }
+        return MyStreamV3.of(mapped);
+    }
+
+    public List<T> toList() {
+        return internalList;
+    }
+}
+```
+```java
+public class MyStreamV3Main {
+
+    public static void main(String[] args) {
+        List<Student> students = List.of(
+                new Student("Apple", 100),
+                new Student("Banana", 80),
+                new Student("Berry", 50),
+                new Student("Tomato", 40)
+        );
+
+        // 점수가 80점 이상인 학생의 이름을 추출
+        List<String> result1 = ex1(students);
+        System.out.println("result1 = " + result1);
+
+        // 점수가 80점 이상이면서, 이름이 5글자인 학생의 이름을 대문자로 추출
+        List<String> result2 = ex2(students);
+        System.out.println("result2 = " + result2);
+    }
+
+    private static List<String> ex1(List<Student> students) {
+        return MyStreamV3.of(students)
+                .filter(s -> s.getScore() >= 80)
+                .map(s -> s.getName())
+                .toList();
+    }
+
+    private static List<String> ex2(List<Student> students) {
+        return MyStreamV3.of(students)
+                .filter(s -> s.getScore() >= 80)
+                .filter(s -> s.getName().length() == 5)
+                .map(s -> s.getName().toUpperCase())
+                .toList();
+    }
+}
+```
+
+## 스트림 만들기 4
+```java
+public class MyStreamV3<T> {
+
+    private List<T> internalList;
+
+    private MyStreamV3(List<T> internalList) {
+        this.internalList = internalList;
+    }
+
+    public static <T> MyStreamV3<T> of(List<T> internalList) {
+        return new MyStreamV3<>(internalList);
+    }
+
+    public MyStreamV3<T> filter(Predicate<T> predicate) {
+        List<T> filtered = new ArrayList<>();
+        for (T number : internalList) {
+            if (predicate.test(number)) {
+                filtered.add(number);
+            }
+        }
+        return MyStreamV3.of(filtered);
+    }
+
+    public <R> MyStreamV3<R> map(Function<T, R> mapper) {
+        List<R> mapped = new ArrayList<>();
+        for (T number : internalList) {
+            mapped.add(mapper.apply(number));
+        }
+        return MyStreamV3.of(mapped);
+    }
+
+    public List<T> toList() {
+        return internalList;
+    }
+
+    public void forEach(Consumer<T> consumer) {
+        for (T number : internalList) {
+            consumer.accept(number);
+        }
+    }
+}
+```
+```java
+public static void main(String[] args) {
+    List<Student> students = List.of(
+            new Student("Apple", 100),
+            new Student("Banana", 80),
+            new Student("Berry", 50),
+            new Student("Tomato", 40)
+    );
+
+    // 내부 반복
+    MyStreamV3.of(students)
+            .filter(s -> s.getScore() >= 80)
+            .map(s -> s.getName())
+            .forEach(name -> System.out.println(name));
+
+
+    // 외부 반복
+    for (Student student : students) {
+        System.out.println(student.getName());
+    }
+
+}
+```
+#### 내부 반복 vs 외부 반복
+스트림을 사용하기 전에 일반적인 반복 방식은 `for`, `while` 같은 반복문을 직접 사용해서 데이터를 순회하는 외부 반복 방식이었다.
+스트림에서 제공하는 `forEach` 메서드로 데이터를 처리하는 방식을 내부 반복이라고 부른다.
+반복 제어를 스트림이 대신 수행하므로, 사용자는 반복 로직을 신경 쓸 필요가 없다.
+코드가 훨씬 간결해자며, 선언형 프로그래밍 스타일을 적용할 수 있다.
+
+
+
