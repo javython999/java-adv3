@@ -1452,4 +1452,207 @@ public static void main(String[] args) {
 코드가 훨씬 간결해자며, 선언형 프로그래밍 스타일을 적용할 수 있다.
 
 
+# 람다 vs 익명 클래스
+자바에서 익명 클래스와 람다 표현식은 모두 간단하게 기능을 구현하거나, 일회성으로 사용할 객체를 만들 때 유용하지만, 그 사용 방식과 의도에는 차이가 있다.
 
+1. 문법차이
+  * 익명 클래스
+    * 익명 클래스는 클래스를 선언하고 즉시 인스턴스를 생성하는 방식이다.
+    * 반드시 `new 인터페이스명() {...}` 형태로 작성해야 하며, 메서드를 오버라이드해서 구현한다.
+    * 익명 클래스도 하나의 클래스이다.
+```java
+Button button = new Button();
+button.setOnClickListener(new OnClickListener() {
+   @Override
+   public void onClick(View v) {
+       System.out.println("버튼 클릭");
+  }
+});
+```
+  * 람다 표현식
+    * 람다 표현식은 함수를 간결하게 표현할 수 있는 방식이다.
+    * 함수형 인터페이스(메서드 하나인 인터페이스)를 간단히 구현할 때 주로 사용한다.
+    * 람다는 `->` 연산자를 사용하여 표현하며, 매개변수와 실행할 내용을 간결하게 작성할 수 있다.
+    * 람다도 인스턴스가 생성된다.
+```java
+Button button = new Button();
+button.setOnClickListener(v -> System.out.println("버튼 클릭"));
+```
+2. 코드 간결함
+* 익명 클래스는 문법적으로 더 복잡하고 장황하다.
+* 람다 표현식은 간결하며, 불필요한 코드를 최소화한다.
+
+3. 상속 관계
+* 익명 클래스는 일반적인 클래스처럼 다양한 인터페이스와 클래스를 구현하거나 상속할 수 있다. 즉 여러 메서드를 가진 인터페이스를 구현할 때도 사용할 수 있다.
+* 람다 표현식은 메서드를 딱 하나만 가지는 함수형 인터페이스만을 구현할 수 있다.
+
+4. 호환성
+* 익명 클래스는 자바의 오래된 버전에서도 사용할 수 있다.
+* 람다 표현식은 자바 8부터 도입되었기 때문에 그 이전 버전에서는 사용할 수 없다.
+
+5. this 키워드의 의미
+* 익명 클래스 내부에서 `this`는 익명 클래스 자신을 가리킨다. 외부 클래스와 별도의 컨텍스트를 가진다.
+* 람다 표현식은 `this`는 람다를 선언한 클래스의 인스턴스를 가리킨다. 즉, 람다 표현식은 별도의 컨텍스트를 가지는 것이 아니라, 람다를 선언한 클래스의 컨텍스트를 유지한다.
+
+6. 캡처링
+* 익명 클래스
+  * 익명 클래스는 외부 변수에 접근할 수있지만, 지역 변수는 반드시 `final` 혹은 사실상 final인 변수만 캡처할 수 있다.
+* 람다 표현식
+  * 람다도 익명 클래스와 같이 캡처링을 지원한다. 지역 변수는 반드시 `final` 혹은 사실상 final인 변수만 캡처할 수있다.
+
+7. 생성 방식
+* 익명 클래스
+  * 익명 클래스는 새로운 클래스를 정의하여 객체를 생성하는 방식이다. 즉, 컴파일 시 새로운 내부 클래스로 변환된다.
+  * 이 방싱근 클래스가 메모리 상에서 별도로 관리되므로 메모리 상에 약간의 추가 오버헤드가 발생한다.
+* 람다
+  * 내부적으로 `invokeDynamic`이라는 메커니즘을 사용하여 컴파일 타임에 실제 클래스 파일을 생성하지 않고, 런타임 시점에 동적으로 필요한 코드를 처리한다.
+  * 람다는 익명 클래스보다 메모리 관리가 더 효율적이며, 생성된 클래스 파일이 없으므로 클래스 파일 관리의 복잡성이 줄어든다.
+
+8. 상태 관리
+* 익명 클래스
+  * 익명 클래스는 인스턴스 내부에서 상태(필드, 멤버 변수)를 가질 수 있다. 예를 들어 익명 클래스 내부에 멤버 변수를 선언하고 해당 변수의 값을 변경하거나 상태를 관리할 수 있다.
+  * 이처럼 상태를 필요로 하는 경우, 익명 클래스가 유리하다.
+* 람다
+  * 클래스는 그 내부에 상태(필드, 멤버 변수)와 기능(메서드)을 가진다. 반면 함수는 그 내부에 상태(필드)를 가지지 않고 기능만 제공한다.
+  * 함수인 람다는 기본적으로 필드(멤버 변수)가 없으므로 스스로 상태를 유지하지 않는다.
+
+9. 익명 클래스와 람다의 용도 구분
+* 익명 클래스
+  * 상태를 유지하거나 다중 메서드를 구현할 필요가 있는 경우
+  * 기존 클래스 또는 인터페이스를 상송하거나 구현할 때
+  * 복잡한 인터페이스 구현이 필요할 때
+* 람다
+  * 상태를 유지할 필요가 없고, 간결함이 중요한 경우
+  * 더 나은 성능(이 부분은 미미함)과 간결한 코드가 필요한 경우
+
+# 메서드 참조
+## 메서드 참조가 필요한 이유
+```java
+public static void main(String[] args) {
+    BinaryOperator<Integer> add1 = (x ,y) -> x + y;
+    BinaryOperator<Integer> add2 = (x ,y) -> x + y;
+
+    Integer result1 = add1.apply(1, 2);
+    System.out.println("result1 = " + result1);
+
+    Integer result2 = add2.apply(1, 2);
+    System.out.println("result2 = " + result2);
+}
+```
+```java
+public static void main(String[] args) {
+    BinaryOperator<Integer> add1 = (x ,y) -> add(x, y);
+    BinaryOperator<Integer> add2 = (x ,y) -> add(x, y);
+
+    Integer result1 = add1.apply(1, 2);
+    System.out.println("result1 = " + result1);
+
+    Integer result2 = add2.apply(1, 2);
+    System.out.println("result2 = " + result2);
+}
+
+private static int add(int x, int y) {
+    return x + y;
+}
+```
+```java
+public static void main(String[] args) {
+    BinaryOperator<Integer> add1 = MethodRefStartV3::add;
+    BinaryOperator<Integer> add2 = MethodRefStartV3::add;
+
+    Integer result1 = add1.apply(1, 2);
+    System.out.println("result1 = " + result1);
+
+    Integer result2 = add2.apply(1, 2);
+    System.out.println("result2 = " + result2);
+}
+
+private static int add(int x, int y) {
+    return x + y;
+}
+```
+#### 메서드 참조의 장점
+* 메서드 참조를 사용하면 코드가 더욱 간결해지고, 가독성이 향상된다.
+* 더 이상 매개변수를 명시적으로 작성할 필요가 없다.
+  * 컴파일러가 자동으로 매개변수를 매칭한다.
+* 별도의 로직 분리와 함께 재사용성 역시 높아진다.
+
+## 메서드 참조 - 시작
+#### 메서드 참조의 4가지 유형
+1. 정적 메소드 참조
+2. 특정 객체의 인스턴스 메서드 참조
+3. 생성자 참조
+4. 임의 객체의 인스턴스 메서드 참조
+
+```java
+public static void main(String[] args) {
+    // 1. 정적 메서드 참조
+    Supplier<String> staticMethod1 = () -> Person.greeting();
+    Supplier<String> staticMethod2 = Person::greeting;  // 클래스::정적메서드
+    System.out.println("staticMethod1.get() = " + staticMethod1.get());
+    System.out.println("staticMethod2.get() = " + staticMethod2.get());
+
+    // 2. 특정 객체의 인스턴스 참조
+    Person person = new Person("Kim");
+    Supplier<String> instanceMethod1 = () -> person.introduce();
+    Supplier<String> instanceMethod2 = person::introduce;
+    System.out.println("instanceMethod1 = " + instanceMethod1.get());
+    System.out.println("instanceMethod2 = " + instanceMethod2.get());
+
+    // 3. 생성자 참조
+    Supplier<Person> newPerson1 = () -> new Person();
+    Supplier<Person> newPerson2 = Person::new;
+    System.out.println("newPerson1 = " + newPerson1.get());
+    System.out.println("newPerson2 = " + newPerson2.get());
+}
+```
+
+## 메서드 참조 - 매개변수
+```java
+public static void main(String[] args) {
+    // 1. 정적 메서드 참조
+    Function<String, String> staticMethod1 = name -> Person.greetingWithName(name);
+    Function<String, String> staticMethod2 = Person::greetingWithName;
+    System.out.println("staticMethod1.get() = " + staticMethod1.apply("kim"));
+    System.out.println("staticMethod2.get() = " + staticMethod2.apply("kim"));
+
+    // 2. 특정 객체의 인스턴스 참조
+    Person person = new Person("Kim");
+    Function<Integer, String> instanceMethod1 = n -> person.introduceWithName(n);
+    Function<Integer, String> instanceMethod2 = person::introduceWithName;
+    System.out.println("instanceMethod1 = " + instanceMethod1.apply(1));
+    System.out.println("instanceMethod2 = " + instanceMethod2.apply(1));
+
+    // 3. 생성자 참조
+    Function<String, Person> newPerson1 = name -> new Person(name);
+    Function<String, Person> newPerson2 = Person::new;
+    System.out.println("newPerson1 = " + newPerson1.apply("kim"));
+    System.out.println("newPerson2 = " + newPerson2.apply("kim"));
+}
+```
+
+## 메서드 참조 - 임의 객체의 인스턴스 메서드 참조
+```java
+public static void main(String[] args) {
+    // 4. 임의 객체의 인스턴스 메서드 참조(특정 타입의)
+    Person person1 = new Person("Kim");
+    Person person2 = new Person("Park");
+    Person person3 = new Person("Lee");
+
+    // 람다
+    Function<Person, String> fun1 = (Person person) -> person.introduce();
+    System.out.println("fun1 = " + fun1.apply(person1));
+    System.out.println("fun2 = " + fun1.apply(person2));
+    System.out.println("fun3 = " + fun1.apply(person3));
+
+    // 메서드 참조, 타입의 첫 번째 매개변수가 됨
+    // 그리고 첫 번째 매개변수의 메서드를 호출, 나머지는 순서대로 매개변수에 전달
+    Function<Person, String> fun2 = Person::introduce; // 타입::인스턴스 메서드
+    System.out.println("person1.introduce = " + fun2.apply(person1));
+    System.out.println("person2.introduce = " + fun2.apply(person2));
+    System.out.println("person3.introduce = " + fun2.apply(person3));
+
+}
+```
+* 특정 객체의 인스턴스 메서드 참조: `객체명::인스턴스메서드`(person::introduce)
+* 임의 객체의 인스턴스 메서드 참조: `클래스명::인스턴스메서드`(Person::introduce)
