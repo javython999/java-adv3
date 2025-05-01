@@ -46,4 +46,8 @@ public class MyStreamV3<T> {
             consumer.accept(number);
         }
     }
+
+    public T getFirst() {
+        return internalList.getFirst();
+    }
 }

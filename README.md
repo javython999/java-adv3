@@ -1656,3 +1656,378 @@ public static void main(String[] args) {
 ```
 * 특정 객체의 인스턴스 메서드 참조: `객체명::인스턴스메서드`(person::introduce)
 * 임의 객체의 인스턴스 메서드 참조: `클래스명::인스턴스메서드`(Person::introduce)
+
+## 메서드 참조 - 활용1
+```java
+public class MethodRefEx4 {
+
+    public static void main(String[] args) {
+        List<Person> personList = List.of(
+                new Person("Kim"),
+                new Person("Park"),
+                new Person("Lee")
+        );
+
+        List<String> result1 = mapPersonToString(personList, (Person p) -> p.introduce());
+        System.out.println("result1 = " + result1);
+
+        List<String> result2 = mapPersonToString(personList, Person::introduce);
+        System.out.println("result2 = " + result2);
+
+        List<String> upperResult1 = mapStringToString(result1, (String s) -> s.toUpperCase());
+        System.out.println("upperResult1 = " + upperResult1);
+
+        List<String> upperResult2 = mapStringToString(result1, String::toUpperCase);
+        System.out.println("upperResult2 = " + upperResult2);
+
+
+    }
+
+    private static List<String> mapPersonToString(List<Person> psersonList, Function<Person, String> function) {
+        List<String> result = new ArrayList<>();
+        for (Person person : psersonList) {
+            result.add(function.apply(person));
+        }
+        return result;
+    }
+
+    private static List<String> mapStringToString(List<String> strings, Function<String, String> function) {
+        ArrayList<String> result = new ArrayList<>();
+        for (String string : strings) {
+            result.add(function.apply(string));
+        }
+        return result;
+    }
+}
+```
+람다 대신에 메서드 참조를 사용한 덕분에 코드가 더 간결해지고, 의도가 더 명확하게 드러나는 것을 확인할 수 있다.
+
+## 메서드 참조 - 활용2
+```java
+public class MethodRefEx5 {
+
+    public static void main(String[] args) {
+        List<Person> personList = List.of(
+                new Person("Kim"),
+                new Person("Park"),
+                new Person("Lee")
+        );
+
+        List<String> result1 = MyStreamV3.of(personList)
+                .map(person -> person.introduce())
+                .map(str -> str.toUpperCase())
+                .toList();
+        System.out.println("result1 = " + result1);
+
+        List<String> result2 = MyStreamV3.of(personList)
+                .map(Person::introduce)
+                .map(String::toUpperCase)
+                .toList();
+        System.out.println("result2 = " + result2);
+    }
+}
+```
+메서드 참조가 더 짧고 명확하게 표현될 수 있다. 이런 방식은 가독성을 높이는 장점이 있다.
+
+## 메서드 참조 - 활용3
+```java
+public class MethodRefEx6 {
+
+    public static void main(String[] args) {
+        Person person = new Person("Kim");
+
+        // 람다
+        BiFunction<Person, Integer, String> function1 = (Person p, Integer n) -> p.introduceWithName(n);
+        System.out.println("person.introduceWithNumber = " + function1.apply(person, 1));
+
+        // 메서드 참조, 타입이 첫 번째 매개변수, 첫 번째 매개변수의 메서드를 호출
+        BiFunction<Person, Integer, String> function2 = Person::introduceWithName;
+        System.out.println("person.introduceWithNumber = " + function2.apply(person, 1));
+    }
+}
+```
+
+# 스트림 API - 기본
+## 스트림 API 시작
+```java
+public static void main(String[] args) {
+    List<String> names = List.of("Apple", "Banana", "Berry", "Tomato");
+    
+    // 'B'로 시작하는 이름만 필터 후 대문자로 바꿔서 리스트 수집
+    List<String> upperNames1 = names.stream()
+            .filter(name -> name.startsWith("B"))
+            .map(s -> s.toUpperCase())
+            .toList();
+    System.out.println(upperNames1);
+    
+    
+    names.stream()
+            .filter(name -> name.startsWith("B"))
+            .map(String::toUpperCase)
+            .forEach(System.out::println);
+    
+    List<String> upperNames2 = names.stream()
+            .filter(name -> name.startsWith("B"))
+            .map(String::toUpperCase)
+            .toList();
+    System.out.println(upperNames2);
+}
+```
+#### 스트림 생성
+```java
+List<String> names = List.of("Apple", "Banana", "Berry", "Tomato");
+Stream<String> stream = names.stream();
+```
+* `List`의 `stream()` 메서드를 사용하면 자바가 제공하는 스트림을 생성할 수 있다.
+
+#### 중간 연산(Intermediate Operations) - `filter`, `map`
+```java
+ .filter(name -> name.startsWith("B"))
+ .map(s -> s.toUpperCase())
+```
+
+#### 최종 연산(Terminal Operation) - `toList()`
+```java
+List<String> upperNames2 = names.stream()
+            .filter(name -> name.startsWith("B"))
+            .map(String::toUpperCase)
+            .toList();
+```
+* `toList()`는 최종연산이다. 중간 연산에서 정의한 연산을 기반으로 최종 결과를 `List`로 만들어 반환한다.
+
+## 스트림 API란?
+* 스트림(Stream)은 자바 8부터 추가된 기능으로, 데이터의 흐름을 추상회해서 다루는 도구이다.
+* 컬렉션(Collection) 또는 배열 등의 요소들을 연산 파이프라인을 통해 연속적인 형태로 처리할 수 있게 해준다.
+
+#### 스트림의 특징
+1. 데이터 소스를 변경하지 않음(Immutable)
+   * 스트림에서 제공하는 연산들은 원본 객체(컬렉션)을 변경하지 않고 결과만 새로 생성한다.
+2. 일회성(1회 소비)
+   * 한 번 사용(소비)된 스트림은 다시 사용할 수 없으며, 필요하다면 새로 스트림을 생성해야 한다.
+3. 파이프라인 구성
+   * 중간 연산들이 이어지다가, 최종연산을 만나면 연산이 수행되고 종료된다.
+4. 지연 연산
+   * 중간 연산은 필요할 때까지 실제로 동작하지 않고, 최종 연산이 실행될 때 한 번에 처리된다.
+5. 병렬 처리 용이
+   * 스트림으로부터 병렬 스트림을 쉽게 만들 수가 있어서, 멀티코어 환경에서 병렬 연산을 비교적 단순한 코드를 작성할 수 있다.
+
+## 파이프라인 구성
+```java
+public class LazyEvalMain {
+
+    public static void main(String[] args) {
+        List<Integer> data = List.of(1, 2, 3, 4, 5, 6);
+        
+        ex1(data);
+        ex2(data);
+    }
+
+    private static void ex1(List<Integer> data) {
+        System.out.println("== MyStreamV3 시작 ==");
+        List<Integer> result = MyStreamV3.of(data)
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                })
+                .toList();
+        System.out.println(result);
+        System.out.println("== MyStreamV3 종료 ==");
+    }
+
+    private static void ex2(List<Integer> data) {
+        System.out.println("== Stream API 시작 ==");
+        List<Integer> result = data.stream()
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                })
+                .toList();
+        System.out.println(result);
+        System.out.println("== Stream API 종료 ==");
+    }
+}
+```
+```
+== MyStreamV3 시작 ==
+fitler() 실행: 1(false)
+fitler() 실행: 2(true)
+fitler() 실행: 3(false)
+fitler() 실행: 4(true)
+fitler() 실행: 5(false)
+fitler() 실행: 6(true)
+map() 실행: 2 -> 20
+map() 실행: 4 -> 40
+map() 실행: 6 -> 60
+[20, 40, 60]
+== MyStreamV3 종료 ==
+== Stream API 시작 ==
+fitler() 실행: 1(false)
+fitler() 실행: 2(true)
+map() 실행: 2 -> 20
+fitler() 실행: 3(false)
+fitler() 실행: 4(true)
+map() 실행: 4 -> 40
+fitler() 실행: 5(false)
+fitler() 실행: 6(true)
+map() 실행: 6 -> 60
+[20, 40, 60]
+== Stream API 종료 ==
+```
+#### 일괄 처리 vs 파이프라인
+* 일괄 처리
+  * 공정(중간 연산)을 단계별로 쪼개서 데이터 전체를 한 번에 처리하고, 결과를 저장해두었다가 다음 공정을 또 한 번에 수행한다.
+* 파이프라인 
+  * 한 단계가 끝나면 바로 다음 단계로 넘기면서 연결되어 있는 형태이다.
+
+#### 정리
+* 자바 스트림은 중간 단계에서 데이터를 모아서 한 방에 처리하지 않고, 한 요소가 중간 연산을 통과하면 곧 바로 다음 중간 연산으로 이어지는 파이프라인 형태를 가진다.
+
+## 지연 연산
+최종 연산을 수행해야 작동한다.
+자바 스트림은 `toList()`와 같은 최종 연산을 수행할 때만 작동한다.
+
+```java
+public class LazyEvalMain2 {
+
+    public static void main(String[] args) {
+        List<Integer> data = List.of(1, 2, 3, 4, 5, 6);
+        
+        ex1(data);
+        ex2(data);
+    }
+
+    private static void ex1(List<Integer> data) {
+        System.out.println("== MyStreamV3 시작 ==");
+        MyStreamV3.of(data)
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                });
+        System.out.println("== MyStreamV3 종료 ==");
+    }
+
+    private static void ex2(List<Integer> data) {
+        System.out.println("== Stream API 시작 ==");
+        data.stream()
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                });
+        System.out.println("== Stream API 종료 ==");
+    }
+}
+```
+```
+== MyStreamV3 시작 ==
+fitler() 실행: 1(false)
+fitler() 실행: 2(true)
+fitler() 실행: 3(false)
+fitler() 실행: 4(true)
+fitler() 실행: 5(false)
+fitler() 실행: 6(true)
+map() 실행: 2 -> 20
+map() 실행: 4 -> 40
+map() 실행: 6 -> 60
+== MyStreamV3 종료 ==
+== Stream API 시작 ==
+== Stream API 종료 ==
+```
+* 스트림 API의 지연 연산을 가장 극명하게 보여주는 예시이다.
+* 중간 연산자들은 파이프라인 설정을 해놓기만하고, 정작 실제 연산은 최종 연산이 호출되기 전까지 전혀 진행되지 않는다.
+
+## 지연 연산과 최적화
+```java
+public class LazyEvalMain3 {
+
+    public static void main(String[] args) {
+        List<Integer> data = List.of(1, 2, 3, 4, 5, 6);
+        
+        ex1(data);
+        ex2(data);
+    }
+
+    private static void ex1(List<Integer> data) {
+        System.out.println("== MyStreamV3 시작 ==");
+        Integer result = MyStreamV3.of(data)
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                })
+                .getFirst();
+        System.out.println(result);
+        System.out.println("== MyStreamV3 종료 ==");
+    }
+
+    private static void ex2(List<Integer> data) {
+        System.out.println("== Stream API 시작 ==");
+        Integer result = data.stream()
+                .filter(n -> {
+                    boolean isEven = n % 2 == 0;
+                    System.out.println("fitler() 실행: " + n + "(" + isEven + ")");
+                    return isEven;
+                })
+                .map(n -> {
+                    int mapped = n * 10;
+                    System.out.println("map() 실행: " + n + " -> " + mapped);
+                    return mapped;
+                })
+                .findFirst().get();
+        System.out.println(result);
+        System.out.println("== Stream API 종료 ==");
+    }
+}
+```
+```
+== MyStreamV3 시작 ==
+fitler() 실행: 1(false)
+fitler() 실행: 2(true)
+fitler() 실행: 3(false)
+fitler() 실행: 4(true)
+fitler() 실행: 5(false)
+fitler() 실행: 6(true)
+map() 실행: 2 -> 20
+map() 실행: 4 -> 40
+map() 실행: 6 -> 60
+20
+== MyStreamV3 종료 ==
+== Stream API 시작 ==
+fitler() 실행: 1(false)
+fitler() 실행: 2(true)
+map() 실행: 2 -> 20
+20
+== Stream API 종료 ==
+```
+#### 정리
+지연 연산과 파이프라인 구조를 이해하면, 스트림 API를 사용해 더 효율적이고 간결한 코드를 작성할 수 있게 된다.
+* 불필요한 연산을 최소화 할 수 있다.
+* 코드는 선언적이지만 내부적으로 효율적으로 동작한다.
