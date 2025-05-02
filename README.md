@@ -2031,3 +2031,393 @@ map() 실행: 2 -> 20
 지연 연산과 파이프라인 구조를 이해하면, 스트림 API를 사용해 더 효율적이고 간결한 코드를 작성할 수 있게 된다.
 * 불필요한 연산을 최소화 할 수 있다.
 * 코드는 선언적이지만 내부적으로 효율적으로 동작한다.
+
+# 스트림 API - 기능
+## 스트림 생성
+```java
+public class CreateStreamMain {
+
+    public static void main(String[] args) {
+        System.out.println("1. 컬렉션으로부터 생성");
+        List<String> list = List.of("a", "b", "c");
+        Stream<String> stream1 = list.stream();
+        stream1.forEach(System.out::println);
+
+        System.out.println("2. 배열로부터 생성");
+        String[] array = {"a", "b", "c"};
+        Stream<String> stream2 = Arrays.stream(array);
+        stream2.forEach(System.out::println);
+
+        System.out.println("3. Stream.of() 사용");
+        Stream<String> stream3 = Stream.of("a", "b", "c");
+        stream3.forEach(System.out::println);
+
+        System.out.println("4. 무한 스트림 생성 - iterate()");
+        Stream<Integer> infiniteStream = Stream.iterate(0, n -> n + 2);
+        infiniteStream.limit(10).forEach(System.out::println);
+
+        System.out.println("5. 무한 스트림 생성 - generate()");
+        Stream<Double> randomStream = Stream.generate(Math::random);
+        randomStream.limit(3).forEach(System.out::println);
+    }
+}
+```
+#### 정리
+* 컬렉션, 배열, Stream.of는 기본적으로 유한한 데이터 소스로부터 스트림을 생성한다.
+* iterate, generate는 별도의 종료 조건이 없으면 무한히 데이터를 만들어 내는 스트림을 생성한다.
+  * 필요한 만큼(limit) 사용해야 한다. 그렇지 않으면 무한 루프처럼 계속 스트림을 뽑아내므로 주의해야 한다.
+
+## 중간 연산
+```java
+public class IntermediateOperationsMain {
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10);
+
+        // 1. filter
+        System.out.println("1. filter - 짝수만 선택");
+        numbers.stream()
+                .filter(n -> n % 2 == 0)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 2. map
+        System.out.println("2. map - 각 숫자를 제곱");
+        numbers.stream()
+                .map(n -> n * n)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 3. distinct
+        System.out.println("3. distinct - 중복 제거");
+        numbers.stream()
+                .distinct()
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 4. sorted (기본 정렬)
+        System.out.println("4. sorted - 기본 정렬");
+        Stream.of(3, 5, 1, 7, 2, 9, 4, 6, 8)
+                .sorted()
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 5. sorted (커스텀 정렬)
+        System.out.println("4. sorted - 기본 정렬");
+        Stream.of(3, 5, 1, 7, 2, 9, 4, 6, 8)
+                .sorted(Comparator.reverseOrder())
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 6. peak
+        System.out.println("6. peek - 동작 확인용");
+        numbers.stream()
+                .peek(n -> System.out.print("before: " + n + ", "))
+                .map(n -> n * n)
+                .peek(n -> System.out.print("after: " + n + ", "))
+                .limit(5)
+                .forEach(n -> System.out.println("최종값: " + n));
+        System.out.println("\n");
+
+        // 7. limit
+        System.out.println("7. limit - 처음 5개 요소만");
+        numbers.stream()
+                .limit(5)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 8 skip
+        System.out.println("8. skip - 처음 5개 요소를 건너뛰기");
+        numbers.stream()
+                .skip(5)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 9. takeWhile (Java 9 +)
+        List<Integer> numbers2 = List.of(1, 2, 3, 4, 5, 1, 2, 3);
+        System.out.println("9. takeWhile - 5보다 작을 동안만 선택");
+        numbers2.stream()
+                .takeWhile(n -> n < 5)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        // 10. dropWhile (Java 9+)
+        System.out.println("10. dropWhile - 5보다 작을 동안 건너뛰기");
+        numbers2.stream()
+                .dropWhile(n -> n < 5)
+                .forEach(n -> System.out.print(n + " "));
+    }
+}
+```
+#### 정리
+* 중간 연산은 파이프라인 형태로 연결할 수 있으며, 스트림을 변경하지만 원본 데이터 자체를 바꾸지 않는다.
+* 중간 연산은 lazy하게 동작하므로, 최종 연산이 실행될 때까지 실제 처리는 일어나지 않는다.
+* `peek`은 디버깅 목적으로 자주 사용하며, 실제 스트림의 요소값을 변경하거나 연산 결과를 반환하지 않는다.
+* `takeWhile`, `dropWhile`은 자바 9부터 추가된 기능으로, 정렬된 스트림에서 사용할 때 유용하다.
+  * 정렬되지 않은 스트림에서 쓰면 예측하기 어렵다.
+
+## FlatMap
+```java
+public class MapVsFlatMapMain {
+
+    public static void main(String[] args) {
+        List<List<Integer>> outerList = List.of(
+                List.of(1, 2),
+                List.of(3 ,4),
+                List.of(5, 6)
+        );
+
+        // forLoop
+        List<Integer> forResult = new ArrayList<>();
+        for (List<Integer> list: outerList) {
+            for (Integer element: list) {
+                forResult.add(element);
+            }
+        }
+        System.out.println("forResult = " + forResult);
+
+        // map
+        List<Stream<Integer>> mapResult = outerList.stream()
+                .map(list -> list.stream())
+                .toList();
+        System.out.println("mapResult = " + mapResult);
+
+        // flatMap
+        List<Integer> flatMapResult = outerList.stream()
+                .flatMap(list -> list.stream())
+                .toList();
+        System.out.println("flatMapResult = " + flatMapResult);
+
+    }
+}
+```
+#### 정리
+중첩 컬렉션을 다룰 때는 `map` 대신 `FlatMap`을 사용하면 중첩 컬렉션을 편리하게 하나의 컬렉션으로 변환할 수 있다.
+
+## Optional
+```java
+package java.util;
+
+public final class Optional<T> { 
+    private final T value;
+    ...
+    public boolean isPresent() {
+        return value != null;
+    }
+    
+    public T get() {
+        if (value == null) {
+            throw new NoSuchElementException("No value present");
+        }
+        return value;
+    }
+}
+```
+* `Optional`은 내부에 하나의 값(value)을 가진다.
+* `isPresent()`를 통해 그 값(value)이 있는지 없는지 확인할 수 있다.
+* `get()`을 통해 내부의 값을 꺼낼 수 있다. 만약 값이 없다면 예외가 발생한다.
+* `Optional`은 이름 그대로 필수가 아니라 옵션이라는 뜻이다.
+
+```java
+public class OptionalSimpleMain {
+
+    public static void main(String[] args) {
+        Optional<Integer> optional1 = Optional.of(10);
+        System.out.println("optional1 = " + optional1);
+
+        if (optional1.isPresent()) {
+            System.out.println("optional1.get() = " + optional1.get());
+        }
+
+        Optional<Object> optional2 = Optional.ofNullable(null);
+        System.out.println("optional2 = " + optional2);
+
+        if (optional2.isPresent()) {
+            System.out.println("optional2.get() = " + optional2.get());
+        }
+
+        // 값이 없는 Optional에서 get()을 호출하면 NoSearchElementException 발생
+        optional2.get();
+    }
+}
+```
+* `Optional`은 내부에 값을 담아두고, 그 값이 `null`이 아닌지를 체크할 수 있는 `isPresent()`와 같은 안전한 체크 메서드를 제공한다.
+* `Optional`은 `null` 값으로 인한 오류(`NullPointerException`)를 방지하고, 코드에서 "값이 없을 수도 있다"는 상황을 명시적으로 표현하기 위해 사용된다.
+
+## 최종 연산
+```java
+public class TerminalOperationsMain {
+
+    public static void main(String[] args) {
+        List<Integer> numbers = List.of(1, 2, 2, 3, 4, 5, 5, 6, 7, 8, 9, 10);
+
+        // Collectors 복잡한 수집이 필요할 때 사용
+        System.out.println("1. collect - List 수집");
+        List<Integer> evenNumbers1 = numbers.stream()
+                .filter(n -> n % 2 == 0)
+                .collect(Collectors.toList());
+        System.out.println("짝수 리스트: " + evenNumbers1);
+        System.out.println();
+
+        System.out.println("2. toList() - (Java 16+)");
+        List<Integer> evenNumbers2 = numbers.stream()
+                .filter(n -> n % 2 == 0)
+                .toList();
+        System.out.println("짝수 리스트: " + evenNumbers2);
+        System.out.println();
+
+        System.out.println("3. toArray() - 배열로 변환");
+        Integer[] array = numbers.stream()
+                .filter(n -> n % 2 == 0)
+                .toArray(Integer[]::new);
+        System.out.println("짝수 배열: " + Arrays.toString(array));
+
+        System.out.println("4. forEach - 각 요소를 처리");
+        numbers.stream()
+                .limit(5)
+                .forEach(n -> System.out.print(n + " "));
+        System.out.println("\n");
+
+        System.out.println("5. count - 요소 개수");
+        long count = numbers.stream()
+                .filter(n -> n > 5)
+                .count();
+        System.out.println("5보다 큰 숫자 개수: " + count);
+        System.out.println();
+
+        System.out.println("6. reduce - 요소들의 합");
+        System.out.println("초기값이 없는 reduce");
+        Optional<Integer> sum1 = numbers.stream()
+                .reduce((a, b) -> a + b);
+        System.out.println("합계(초기값 없음): " + sum1.get());
+        System.out.println("초기값이 있는 reduce");
+        int sum2 = numbers.stream()
+                .reduce(100, (a, b) -> a + b);
+        System.out.println("합계(초기값 없음): " + sum2);
+        System.out.println("\n");
+
+        System.out.println("7. min - 초소값");
+        Optional<Integer> min = numbers.stream()
+                .min(Integer::compareTo);
+        System.out.println("최소값: " + min.get());
+        System.out.println();
+
+        System.out.println("8. max - 최대값");
+        Optional<Integer> max = numbers.stream()
+                .max(Integer::compareTo);
+        System.out.println("최대값: " + max.get());
+        System.out.println();
+
+        System.out.println("9. findFirst - 첫 번째 요소");
+        Integer first = numbers.stream()
+                .filter(n -> n > 5)
+                .findFirst().get();
+        System.out.println("5 보다 큰 첫 번째 숫자: " + first);
+        System.out.println();
+
+        System.out.println("10. findAny - 아무 요소나 한 ㅏ찾기");
+        Integer any = numbers.stream()
+                .filter(n -> n > 5)
+                .findAny().get();
+        System.out.println("5 보다 큰 아무 숫자: " + any);
+        System.out.println();
+
+        System.out.println("11. anyMatch - 조건을 만족하는 요소 존재 여부");
+        boolean hasEven = numbers.stream()
+                .anyMatch(n -> n % 2 == 0);
+        System.out.println("짝수가 있나? " + hasEven);
+        System.out.println();
+
+        System.out.println("12 allMatch - 모든 요소가 조건을 만족하는지");
+        boolean allPositive = numbers.stream()
+                .allMatch(n -> n > 0);
+        System.out.println("모든 숫자가 양수 인가? " + allPositive);
+        System.out.println();
+
+        System.out.println("13. noneMatch - 조건을 만족하는 요소가 없는지");
+        boolean noNegative = numbers.stream()
+                .noneMatch(n -> n < 0);
+        System.out.println("음수가 없나? " + noNegative);
+    }
+}
+```
+#### 정리
+* 최종 연산이 호출되면, 그동안 정의된 모든 중간 연산이 한 번에 적용되어 결과를 만든다.
+* 최종 연산을 한 번 수행하면, 스트림은 재사용할 수 없다.
+* `reduce`를 사용할 때 초깃값을 지정하면, 스트림이 비어있어도 초기값이 결과가 된다. 초기값이 없으면 `Optional`을 반환한다.
+* `findFirst()`, `findAny()`도 결과가 없을 수 있으므로 Optional을 통해 값 유무를 확인해야 한다.
+
+## 기본형 특화 Stream
+```java
+public class PrimitiveStreamMain {
+
+    public static void main(String[] args) {
+        // 기본형 특화 스트림(IntStream, LongStream, DoubleStream)
+        IntStream stream = IntStream.of(1, 2, 3, 4, 5);
+        stream.forEach(i -> System.out.print(i + " "));
+        System.out.println();
+
+        // 범위 생성 메서드 (IntStream, LongStream)
+        IntStream range1 = IntStream.range(1, 6); // [1, 2, 3, 4, 5]
+        range1.forEach(i -> System.out.print(i + " "));
+        System.out.println();
+        IntStream range2 = IntStream.rangeClosed(1, 5); // [1, 2, 3, 4, 5]
+        range2.forEach(i -> System.out.print(i + " "));
+        System.out.println();
+
+        // 1. 통계 관련 메서드(sum, average, min, max, count)
+        // sum
+        int sum = IntStream.range(1, 6).sum();
+        System.out.println("sum = " + sum);
+
+        // average
+        double average = IntStream.range(1, 6).average().getAsDouble();
+        System.out.println("average = " + average);
+
+        // summaryStatistics
+        IntSummaryStatistics stats = IntStream.range(1, 6).summaryStatistics();
+        System.out.println("합계: " + stats.getSum());
+        System.out.println("평균: " + stats.getAverage());
+        System.out.println("최대값: " + stats.getMax());
+        System.out.println("최소값: " + stats.getMin());
+        System.out.println("개수: " + stats.getCount());
+
+        // 2. 타입 변환 메서드
+        // IntStream -> LongStream
+        LongStream longStream = IntStream.range(1, 6).asLongStream();
+
+        // IntStream -> DoubleStream
+        DoubleStream doubleStream = IntStream.range(1, 6).asDoubleStream();
+
+        // IntStream -> Stream<Integer>
+        Stream<Integer> boxedStream = IntStream.range(1, 6).boxed();
+
+        // 3. 기본형 특화 매핑
+        // int -> long
+        LongStream mappedLong = IntStream.range(1, 6).mapToLong(i -> i * 10L);
+
+        // int -> double
+        DoubleStream mappedToDouble = IntStream.range(1, 6).mapToDouble(i -> i * 1.5);
+
+        // int -> 객체 변환 매핑
+        Stream<String> mappedObj = IntStream.range(1, 6).mapToObj(i -> "Number: " + i);
+
+        // 4. 객체 스트림 -> 기본형 특화 스트림으로 매핑
+        Stream<Integer> integerStream = Stream.of(1, 2, 3, 4, 5);
+        IntStream intStream = integerStream.mapToInt(i -> i);
+
+        // 5. 객체 스트림 -> 기본형 특화 스트림으로 매핑 활용
+        int result = Stream.of(1, 2, 3, 4, 5)
+                .mapToInt(i -> i)
+                .sum();
+        System.out.println("result = " + result);
+
+    }
+}
+```
+#### 정리
+* 기본형 특화 스트림(IntStream, LongStream, DoubleStream)을 이용하면 숫자 계산(합계, 평균, 최대, 최소 등)을 간편하게 처리하고 박싱/언박싱 오버헤드를 줄여 성능상의 이점도 얻을 수 있다.
+* `range()`, `rangeClosed()` 같은 메서드를 사용하면 범위를 쉽게 다룰 수 있어 반복문 대신 자주 쓰인다.
+* `mapToXxx`, `boxed()` 등의 메서드를 잘 활요하면 객체 스트림과 기본형 특화 스트림을 자유롭게 오가며 다양한 작업을 할 수 있다.
+* `summaryStaticstics()`를 사용하면 합계, 평균, 최솟값, 최댓값 등 통계 정보를 한 번에 구할 수 있어 편리하다.
+
