@@ -2421,3 +2421,545 @@ public class PrimitiveStreamMain {
 * `mapToXxx`, `boxed()` 등의 메서드를 잘 활요하면 객체 스트림과 기본형 특화 스트림을 자유롭게 오가며 다양한 작업을 할 수 있다.
 * `summaryStaticstics()`를 사용하면 합계, 평균, 최솟값, 최댓값 등 통계 정보를 한 번에 구할 수 있어 편리하다.
 
+# 스트림 API - 컬렉터
+## 컬렉터
+스트림 중간 연산을 거쳐 최종 연산으로써 데이터를 처리할 때, 그 결과물이 필요한 경우가 많다.
+리스트나 맵 같은 자료 구조로 답고 싶다거나 통계 데이터를 내고 싶다는 식의 요구가 있을때, 최종 연산에 `Collectors`를 활용한다.
+
+```java
+public static void main(String[] args) {
+    // 기본 기능
+    List<String> list = Stream.of("Java", "Spring", "JPA")
+            .collect(Collectors.toList());
+    System.out.println("list = " + list);
+
+    // 수정 불가능 리스트
+    List<Integer> unmodifiableNumberList = Stream.of(1, 2, 3)
+            .collect(Collectors.toUnmodifiableList());
+    //unmodifiableNumberList.add(4);
+    System.out.println("unmodifiableNumberList = " + unmodifiableNumberList);
+
+    Set<Integer> set = Stream.of(1, 2, 2, 3, 3)
+            .collect(Collectors.toSet());
+    System.out.println("set = " + set);
+
+    // 타입 지정
+    TreeSet<Integer> treeSet = Stream.of(3, 4, 5, 2, 1)
+            .collect(Collectors.toCollection(TreeSet::new));
+    System.out.println("treeSet = " + treeSet);
+}
+```
+```java
+public static void main(String[] args) {
+    Map<String, Integer> map1 = Stream.of("Apple", "Banana", "Tomato")
+            .collect(Collectors.toMap(
+                    name -> name,
+                    name -> name.length())
+            );
+    System.out.println("map1 = " + map1);
+
+    // 키 중복 예외: java.lang.IllegalStateException: Duplicate key Apple
+    /*
+    Map<String, Integer> map2 = Stream.of("Apple", "Apple", "Tomato")
+            .collect(Collectors.toMap(
+                    name -> name,
+                    name -> name.length())
+            );
+    System.out.println("map2 = " + map2);
+    */
+
+    Map<String, Integer> map3 = Stream.of("Apple", "Apple", "Tomato")
+            .collect(Collectors.toMap(
+                    name -> name,
+                    name -> name.length(),
+                    (oldValue, newValue) -> oldValue + newValue
+            ));
+    System.out.println("map3 = " + map3);
+
+    // Map 타입 지정
+    Map<String, Integer> map4 = Stream.of("Apple", "Apple", "Tomato")
+            .collect(Collectors.toMap(
+                    name -> name,
+                    name -> name.length(),
+                    (oldValue, newValue) -> oldValue + newValue,
+                    LinkedHashMap::new
+            ));
+    System.out.println("map4 = " + map4.getClass());
+}
+```
+```java
+public static void main(String[] args) {
+    Integer max1 = Stream.of(1, 2, 3)
+            .collect(Collectors.maxBy((i1, i2) -> i1.compareTo(i2)))
+            .get();
+    System.out.println("max1 = " + max1);
+
+    Integer max2 = Stream.of(1, 2, 3)
+            .max((i1, i2) -> i1.compareTo(i2))
+            .get();
+    System.out.println("max2 = " + max2);
+
+    Integer max3 = Stream.of(1, 2, 3)
+            .max(Integer::compareTo)
+            .get();
+    System.out.println("max3 = " + max3);
+
+    // 기본형 특화 스트림
+    int max4 = IntStream.of(1, 2, 3)
+            .max()
+            .getAsInt();
+    System.out.println("max4 = " + max4);
+}
+```
+```java
+public static void main(String[] args) {
+
+    Long count1 = Stream.of(1, 2, 3)
+            .collect(Collectors.counting());
+    System.out.println("count1 = " + count1);
+
+    long count2 = Stream.of(1, 2, 3)
+            .count();
+    System.out.println("count2 = " + count2);
+
+    Double average1 = Stream.of(1, 2, 3)
+            .collect(Collectors.averagingInt(i -> i));
+    System.out.println("average1 = " + average1);
+
+    // 기본형 특화 스트림으로 변환
+    double average2 = Stream.of(1, 2, 3)
+            .mapToInt(i -> i)
+            .average()
+            .getAsDouble();
+    System.out.println("average2 = " + average2);
+
+    // 기본형 특화 스트림 사용
+    double average3 = IntStream.of(1, 2, 3)
+            .average()
+            .getAsDouble();
+    System.out.println("average3 = " + average3);
+
+    // 통계
+    IntSummaryStatistics stats = Stream.of("Apple", "Banana", "Tomato")
+            .collect(Collectors.summarizingInt(String::length));
+    System.out.println(stats.getCount());
+    System.out.println(stats.getSum());
+    System.out.println(stats.getMin());
+    System.out.println(stats.getMax());
+    System.out.println(stats.getAverage());
+}
+```
+```java
+public static void main(String[] args) {
+    List<String> names = List.of("a", "b", "c", "d");
+
+    // 컬렉션의 리듀싱은 주로 다운 스트름에 활용
+    String joined1 = names.stream()
+            .collect(Collectors.reducing((s1, s2) -> s1 + ", " + s2))
+            .get();
+    System.out.println("joined1 = " + joined1);
+
+    String joined2 = names.stream()
+            .reduce((s1, s2) -> s1 + ", " + s2)
+            .get();
+    System.out.println("joined2 = " + joined2);
+
+    // 문자열 전용 기능
+    String joined3 = names.stream()
+            .collect(Collectors.joining(", "));
+    System.out.println("joined3 = " + joined3);
+
+    String joined4 = String.join(", ", names);
+    System.out.println("joined4 = " + joined4);
+}
+```
+
+## 다운 스트림 컬렉터
+#### 다운 스트림 컬렉터가 필요한 이유
+* `groupingBy(...)`를 사용하면 일단 요소가 그룹별로 묶이지만, 그룹 내 요소를 구체적으로 어떻게 처리할지는 기본적으로 `toList()`만 적용된다.
+* 그룹별 총합, 평균, 최소/최대값, 매핑된 결과, 통계 등을 바로 얻고 싶을 때가 많다.
+* 다운 스트림 컬렉터를 활요하면 "그룹 내부"를 다시 한번 모으거나 집계하여 원하는 결과를 얻을 수 있다.
+
+#### 다운 스트림 컬렉터란?
+* `Collectors.groupingBy(...)` 또는 `Collectors.partitioningBy(...)`에서 두 번째 인자로 전달되는 `Collector`를 가리켜 "다운 스트림 컬렉터"라 한다.
+
+```java
+public static void main(String[] args) {
+
+    List<Student> students = List.of(
+            new Student("Kim", 1, 85),
+            new Student("Park", 1, 70),
+            new Student("Lee", 2, 70),
+            new Student("Han", 2, 90),
+            new Student("Hoon", 3, 90),
+            new Student("Ha", 3, 89)
+    );
+
+    // 1. 학년 별로 학생을 그룹화
+    Map<Integer, List<Student>> collect1_1 = students.stream()
+            .collect(Collectors.groupingBy(Student::getGrade, Collectors.toList()));
+    System.out.println("collect1_1 = " + collect1_1);
+
+    // 다운스트림에서 toList() 생략 가능
+    Map<Integer, List<Student>> collect1_2 = students.stream()
+            .collect(Collectors.groupingBy(Student::getGrade));
+    System.out.println("collect1_2 = " + collect1_2);
+
+    // 2. 학년별로 학생들의 이름을 출력해라.
+    Map<Integer, List<String>> collect2 = students.stream()
+            .collect(Collectors.groupingBy(
+                    Student::getGrade,
+                    Collectors.mapping(
+                            s -> s.getName(), // 다운스트림 1: 학생 -> 이름 변환
+                            Collectors.toList())      // 다운스트림 1: 변환된 값(이름)을 list로 수집
+            ));
+    System.out.println("collect2 = " + collect2);
+
+    // 3. 학년별로 학생들의 수를 출력
+    Map<Integer, Long> collect3 = students.stream()
+            .collect(Collectors.groupingBy(
+                    Student::getGrade,
+                    Collectors.counting())
+            );
+    System.out.println("collect3 = " + collect3);
+
+    // 4. 학년별로 학생들의 평균 성적 출력
+    Map<Integer, Double> collect4 = students.stream()
+            .collect(Collectors.groupingBy(
+                    Student::getGrade,
+                    Collectors.averagingDouble(Student::getScore)
+            ));
+    System.out.println("collect4 = " + collect4);
+
+}
+```
+
+```java
+public static void main(String[] args) {
+
+    List<Student> students = List.of(
+            new Student("Kim", 1, 85),
+            new Student("Park", 1, 70),
+            new Student("Lee", 2, 70),
+            new Student("Han", 2, 90),
+            new Student("Hoon", 3, 90),
+            new Student("Ha", 3, 89)
+    );
+
+   // 1. 학년별로 학생들을 그룹화
+    Map<Integer, List<Student>> collect1 = students.stream()
+            .collect(Collectors.groupingBy(Student::getGrade));
+    System.out.println("collect1 = " + collect1);
+
+    // 2. 학년별로 가장 점수가 높은 학생. reducing 사용
+    Map<Integer, Optional<Student>> collect2 = students.stream()
+            .collect(Collectors.groupingBy(
+                            Student::getGrade,
+                            Collectors.reducing((s1, s2) -> s1.getScore() > s2.getScore() ? s1 : s2)
+                    )
+            );
+    System.out.println("collect2 = " + collect2);
+
+    // 3. 학년별로 가장 점수가 높은 학생
+    Map<Integer, Optional<Student>> collect3 = students.stream()
+            .collect(Collectors.groupingBy(
+                    Student::getGrade,
+                    //Collectors.maxBy((s1, s2) -> s1.getScore() > s2.getScore() ? 1 : -1)
+                    Collectors.maxBy(Comparator.comparingInt(Student::getScore))
+            ));
+    System.out.println("collect3 = " + collect3);
+
+    // 4. 학년별로 가장 점수가 높은 학생의 이름 (collectingAndThen + maxBy)
+    Map<Integer, String> collect4 = students.stream()
+            .collect(Collectors.groupingBy(
+                    Student::getGrade,
+                    Collectors.collectingAndThen(
+                            Collectors.maxBy(Comparator.comparingInt(Student::getScore)),
+                            studentOptional -> studentOptional.get().getName()
+                    )
+            ));
+    System.out.println("collect4 = " + collect4);
+}
+```
+# Optional
+## Optional이 필요한 이유
+#### NullPointerException(NPE) 문제
+* 자바에서 `null`은 값이 없음을 표현하는 가장 기본적인 방법이다.
+* `null`을 잘못 사용하거나 `null` 참조에 대해 메서드를 호출하면 `NullPointerException`이 발생하여 프로그램이 예기치 않게 종료될 수 있다.
+* `null` 체크가 누락되면, 추적하기 어렵고 디버깅 비용이 증가
+
+#### 가독성 저하
+* `null`을 반환하거나 사용하게 되면, 코드를 작성할 때마다  `if (obj != null) { ... } else { ... }` 같은 조건문으로 `null` 여부를 계속 확인해야 한다.
+* `null` 체크 로직이 누적되면 코드가 복잡해지고 가독성이 떨어진다.
+
+#### 의도가 드러나지 않음
+* 메서드 시그니처만 보고서는 이 메서드가 `null`을 반환할 수 도 있다는 사실을 명확히 알기 어렵다.
+* 호출하는 입장에서 "반드시 값이 존재할 것"이라고 가정했다가, 런타임에 `null`이 나와서 문제가 생길 수 있다.
+
+#### Optional 미사용
+```java
+public class OptionalStartMain1 { 
+    private static final Map<Long, String> map = new HashMap<>();
+    
+    static {
+        map.put(1L, "Kim");
+        map.put(2L, "Seo");
+        // 3L은 넣지 않아서 찾을 수 없는 ID로 활용
+    }
+    
+    public static void main(String[] args) {
+        findAndPrint(1L); // 값이 있는 경우
+        findAndPrint(3L); // 값이 없는 경우
+    }
+    
+    // 이름이 있으면 이름을 대문자로 출력, 없으면 "UNKNOWN"을 출력해라.
+    private static void findAndPrint(Long id) {
+        String name = findNameById(id);
+        // 1. NullPointerException 유발
+        //System.out.println("name = " + name.toUpperCase());
+        // 2. if 문을 활용한 null 체크 필요
+        if (name != null) {
+            System.out.println(id + ": " + name.toUpperCase());
+        } else {
+            System.out.println(id + ": " +  "UNKNOWN");
+        }
+    }
+    
+    private static String findNameById(Long id) {
+        return map.get(id);
+    }
+}
+```
+#### Optional 사용
+```java
+public class OptionalStartMain2 {
+
+    private static final Map<Long, String> map = new HashMap<>();
+
+    static {
+        map.put(1L, "Kim");
+        map.put(2L, "Seo");
+    }
+
+    public static void main(String[] args) {
+        findAndPrint(1L);
+        findAndPrint(3L);
+    }
+
+    private static void findAndPrint(Long id) {
+        String name = findNameById(id).orElse("UNKNOWN");
+        System.out.println(id +": " + name.toUpperCase());
+    }
+
+    private static Optional<String> findNameById(Long id) {
+        return Optional.ofNullable(map.get(id));
+    }
+}
+```
+코드가 더 간결해지고 반환타입을 통해 반환값이 `null`일 수도 있음을 알 수 있다.
+## Optional의 생성과 값 획득
+#### Optional 생성
+```java
+    public static void main(String[] args) {
+        // 1. of() : 값이 null이 아님이 확실할 때 사용, null이면 NullPointerException 발생
+        String noneNullValue = "Hello World";
+        Optional<String> opt1 = Optional.of(noneNullValue);
+        System.out.println("opt1 = " + opt1);
+
+        // 2. ofNullable() : 값이 null일 수도, 아닐 수도 있을 때
+        Optional<String> opt2 = Optional.ofNullable("Hello");
+        Optional<String> opt3 = Optional.ofNullable(null);
+        System.out.println("opt2 = " + opt2);
+        System.out.println("opt3 = " + opt3);
+
+        // 3 empty() : 비어있는 Optional을 명시적으로 생성
+        Optional<Object> opt4 = Optional.empty();
+        System.out.println("opt4 = " + opt4);
+    }
+```
+#### Optional 값 획득
+```java
+    public static void main(String[] args) {
+
+        // 예제: 문자열 "Hello"가 있는 Optional과 비어있는 Optional 준비
+        Optional<String> optValue = Optional.of("Hello");
+        Optional<Object> optEmpty = Optional.empty();
+
+        // isPresent() : 값이 있으면 true
+        System.out.println("=== 1. isPresent() / isEmpty() ===");
+        System.out.println("optValue.isPresent() = " + optValue.isPresent());
+        System.out.println("optEmpty.isPresent() = " + optEmpty.isPresent());
+        System.out.println("optValue.isEmpty() = " + optValue.isEmpty());
+        System.out.println("optEmpty.isEmpty() = " + optEmpty.isEmpty());
+
+        // get() : 직접 내부 값을 꺼냄, 값이 없으면 예외(NoSuchElementException)
+        System.out.println("=== 2. get() ===");
+        String getValue = optValue.get();
+        System.out.println("getValue = " + getValue);
+        //String getValue2 = optEmpty.get();
+
+        // 값이 있으면 그 값, 없으면 지정된 기본값 사용
+        System.out.println("=== 3. orElse() ===");
+        String value1 = optValue.orElse("기본값");
+        Object empty1 = optEmpty.orElse("기본값");
+        System.out.println("value1 = " + value1);
+        System.out.println("value2 = " + empty1);
+
+        // 값이 없을 때만 람다(Supplier)가 실행되어 기본값 생성
+        System.out.println("=== 4. orElseGet() ===");
+        String value2 = optValue.orElseGet(() -> {
+            System.out.println("람다 호출 - optValue");
+            return "New Value";
+        });
+        String empty2 = optEmpty.orElseGet(() -> {
+            System.out.println("람다 호출 - optEmpty");
+            return "New Value";
+        }).toString();
+        System.out.println("value2 = " + value2);
+        System.out.println("empty2 = " + empty2);
+
+        // 값이 있으면 반환, 없으면 예외 발생
+        System.out.println("=== 5. orElseThrow() ===");
+        String value3 = optValue.orElseThrow(() -> new RuntimeException("값이 없습니다."));
+        System.out.println("value3 = " + value3);
+
+        try {
+            Object empty3 = optEmpty.orElseThrow(() -> new RuntimeException("값이 없습니다."));
+            System.out.println("empty3 = " + empty3);
+        } catch (RuntimeException e) {
+            System.out.println("예외 발생" + e.getMessage());
+        }
+
+        // Optional을 반환
+        System.out.println("=== 6. or() ===");
+        Optional<String> result1 = optValue.or(() -> Optional.of("Fallback"));
+        System.out.println("result1 = " + result1);
+        Optional<Object> result2 = optEmpty.or(() -> Optional.of("Fallback"));
+        System.out.println("result2 = " + result2);
+
+    }
+```
+
+## Optional 값 처리
+`Optional`에서는 값이 존재할 때와 존재하지 않을 때를 처리하기 위한 다양한 메서드들을 제공한다.
+이를 활용하면 `null` 체크 로직 없이도 안전하고 간결하게 값을 다룰 수 있다.
+
+#### Optional 값 처리 메서드
+```java
+public static void main(String[] args) {
+    Optional<String> optValue = Optional.of("Hello");
+    Optional<String> optEmpty = Optional.empty();
+
+    // 값이 존재하면 Consumer 실행, 없으면 아무 일도 하지 않음
+    System.out.println("=== 1. ifPresent() ===");
+    optValue.ifPresent(v -> System.out.println("optValue 값 : " + v));
+    optEmpty.ifPresent(v -> System.out.println("optValue 값 : " + v));
+
+    // 값이 있으면 Consumer 실행, 없으면 Runnable 실행
+    System.out.println("=== 2. ifPresentOrElse() ===");
+    optValue.ifPresentOrElse(
+            v -> System.out.println("optValue 값 : " + v),
+            () -> System.out.println("optValue는 비어있음.")
+    );
+    optEmpty.ifPresentOrElse(
+            v -> System.out.println("optEmpty 값 : " + v),
+            () -> System.out.println("optEmpty는 비어있음.")
+    );
+
+    // 값이 있으면 Function 적용후 Optional로 반환, 없으면 Optional.empty()
+    System.out.println("=== 3. map() ===");
+    Optional<Integer> lengthOpt1 = optValue.map(String::length);
+    System.out.println("optValue.map(String::length) = " + lengthOpt1);
+    Optional<Integer> lengthOpt2 = optEmpty.map(String::length);
+    System.out.println("optEmpty.map(String::length) = " + lengthOpt2);
+
+    // map()과 유사하나, 이미 Optional을 반환하는 경우 중첩을 제거
+    System.out.println("== 4. flatMap() ===");
+    System.out.println("[Map]");
+    Optional<Optional<String>> nestedOpt = optValue.map(s -> Optional.of(s));
+    System.out.println("nestedOpt = " + nestedOpt);
+    System.out.println("[FlatMap]");
+    Optional<String> flattenedOpt = optValue.flatMap(o -> Optional.of(o));
+    System.out.println("flattenedOpt = " + flattenedOpt);
+
+    // 값이 있고 조건을 만족하면 그 값을 그대로, 불만족시 Optional.empty()
+    System.out.println("== 5. filter() ===");
+    Optional<String> filtered1 = optValue.filter(s -> s.startsWith("H"));
+    Optional<String> filtered2 = optValue.filter(s -> s.startsWith("X"));
+    System.out.println("filtered1 = " + filtered1);
+    System.out.println("filtered2 = " + filtered2);
+
+    // 값이 있으면 단일 요소 스트림, 없으면 빈 스트림
+    System.out.println("== 6. stream() ===");
+    optValue.stream()
+            .forEach(System.out::println);
+    optEmpty.stream()
+            .forEach(System.out::println);
+
+}
+```
+## 즉시 평가와 지연평가
+* 즉시 평가(eager evaluation): 값(혹은 객체)을 바로 생성하거나 계산해 버리는 것
+* 지연 평가(lazy evaluation): 값이 실제 필요로 할때(즉, 사용될 때)까지 계산을 미루는 것
+
+```java
+public static void main(String[] args) {
+    Logger logger = new Logger();
+    logger.setDebug(true);
+    logger.debug(value100() + value200());
+
+    System.out.println("=== 디버그 모드 끄기 ===");
+    logger.setDebug(false);
+    logger.debug(value100() + value200());
+
+    System.out.println("=== 디버그 모드 체크 ===");
+    if (logger.isDebug()) {
+        logger.debug(value100() + value200());
+    }
+}
+
+private static int value100() {
+    System.out.println("value100 호출");
+    return 100;
+}
+
+private static int value200() {
+    System.out.println("value200 호출");
+    return 200;
+}
+```
+
+자바에서 연산을 정의하는 시점과 해당 연산을 실행하는 시점을 분리하는 방법은 여러가지가 있다.
+* 익명 클래스를 만들고, 메서드를 나중에 호출
+* 람다를 만들고, 해당 람다를 나중에 호출
+```java
+public static void main(String[] args) {
+    Logger logger = new Logger();
+    logger.setDebug(true);
+    logger.debug(() -> value100() + value200());
+
+    System.out.println("=== 디버그 모드 끄기 ===");
+    logger.setDebug(false);
+    logger.debug(() -> value100() + value200());
+
+    System.out.println("=== 디버그 모드 체크 ===");
+    if (logger.isDebug()) {
+        logger.debug(() -> value100() + value200());
+    }
+}
+
+private static int value100() {
+    System.out.println("value100 호출");
+    return 100;
+}
+
+private static int value200() {
+    System.out.println("value200 호출");
+    return 200;
+}
+```
+
+
+#### 정리
+람다를 사용해서 연산을 정의하는 시점과 실행(평가)하는 시점을 분리하면 꼭 필요한 계산만 처리할 수 있다.
+
