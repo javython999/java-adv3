@@ -1,4 +1,4 @@
-package lambda.methodref;
+package methodref;
 
 import lambda.lambda5.mystream.MyStreamV3;
 

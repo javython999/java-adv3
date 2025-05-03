@@ -1,4 +1,4 @@
-package lambda.methodref;
+package methodref;
 
 public class Person {
 

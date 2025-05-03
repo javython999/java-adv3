@@ -1,4 +1,4 @@
-package lambda.methodref;
+package methodref;
 
 import java.util.function.Function;
 

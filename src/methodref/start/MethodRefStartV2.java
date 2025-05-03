@@ -1,4 +1,4 @@
-package lambda.methodref.start;
+package methodref.start;
 
 import java.util.function.BinaryOperator;
 

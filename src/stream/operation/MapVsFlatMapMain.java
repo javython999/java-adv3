@@ -1,4 +1,4 @@
-package lambda.stream.operation;
+package stream.operation;
 
 import java.util.ArrayList;
 import java.util.List;
