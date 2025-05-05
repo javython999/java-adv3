@@ -2963,3 +2963,213 @@ private static int value200() {
 #### 정리
 람다를 사용해서 연산을 정의하는 시점과 실행(평가)하는 시점을 분리하면 꼭 필요한 계산만 처리할 수 있다.
 
+## orElse() vs orElseGet()
+```java
+public class OrElseGetMain {
+
+    public static void main(String[] args) {
+        Optional<Integer> optValue = Optional.of(100);
+        Optional<Integer> optEmpty = Optional.empty();
+
+        System.out.println("단순 계산");
+        Integer i1 = optValue.orElse(10 + 20);
+        Object i2 = optEmpty.orElse(10 + 20);
+        System.out.println("i1 = " + i1);
+        System.out.println("i2 = " + i2);
+
+        // 값이 있으면 그 값, 없으면 지정된 기본값 사용
+        System.out.println("=== orElse ===");
+        System.out.println("값이 있는 경우");
+        Integer value1 = optValue.orElse(createData());
+        System.out.println("value1 = " + value1);
+
+        System.out.println("값이 없는 경우");
+        Integer empty1 = optEmpty.orElse(createData());
+        System.out.println("empty1 = " + empty1);
+
+        // 값이 있으면 그 값, 없으면 지정된 람다 사용
+        System.out.println("=== orElseGet ===");
+        System.out.println("값이 있는 경우");
+        Integer value2 = optValue.orElseGet(() -> createData());
+        System.out.println("value2 = " + value2);
+
+        System.out.println("값이 없는 경우");
+        Integer empty2 = optEmpty.orElseGet(() -> createData());
+        System.out.println("empty2 = " + empty2);
+
+    }
+
+    private static int createData() {
+        System.out.println("데이터를 생성합니다...");
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        int createValue = new Random().nextInt(100);
+        System.out.println("데이터 생성이 완료되었습니다. 생성값 : " + createValue);
+        return createValue;
+
+    }
+}
+```
+* `orElse(T other)`는 빈 값이면 `other`를 반환하는데 `other`는 항상 미리 계산한다.
+  * 따라서 `other`를 생성하는 비용이 큰 경우 실제로 값이 있을 때도 쓸데없이 생성 로직이 실행될 수 있다.
+  * `orElse()`에 넘기는 표현식은 호출 즉시 평가 하므로 즉시 평가가 적용된다.
+* `orElseGet(Supplier suppliter)`은 빈 값이면 `supplier`를 통해 생성하기 때문에 값이 있을 때는 `supplier`를 호출 되지 않는다.
+  * 생성 비용이 높은 객체를 다룰 때는 `orElseGet()`이 더 효율적이다.
+  * `orElseGet()`에 넘기는 표현식은 필요할 때만 평가하므로 지연 평가가 적용된다.
+
+단순한 대체 값을 전달하거나 코드가 매우 간단하다면 `orElse()`를 사용하고,
+객체 생성 비용이 큰 로직이 들어있고, Optional에 값이 이미 존재할 가능성이 높다면 `orElseGet()`을 고려해볼 수 있다.
+
+## Optional best practice
+#### 1. 반환 타입으만 사용하고, 필드에는 가급적 쓰지말기
+* `Optional`은 주로 메서드의 반환 값에대해 "값이 없을 수도 있음"을 표현하기 위해 도입되었다.
+* 클래스의 필드에 `Optional`을 직접 두는 것은 권장하지 않는다.
+
+#### 잘못 사용 예시
+```java
+public class Product { 
+    // 안티 패턴: 필드를 Optional로 선언
+    private Optional<String> name; 
+    // ... constructor, getter, etc.
+}
+```
+
+#### 권장 예시
+```java
+public class Product {
+    // 필드는 원시 타입(혹은 일반 참조 타입) 그대로 둔다.
+    private String name;
+    // ... constructor, getter, etc.
+
+    // name 값을 가져올 때, "필드가 null일 수도 있음"을 고려해야 한다면
+    // 다음 메서드에서 Optional로 변환해서 반환할 수 있다.
+    public Optional<String> getNameAsOptional() {
+        return Optional.ofNullable(name);
+    }
+}
+```
+
+#### 2. 메서드 매개변수로 `Optional`을 사용하지 말기
+* 자바 공식 문서에 `Optional`은 메서드의 반환값으로 사용하기를 권장하며 매개변수로 사용하지 말라고 명시되어있다.
+* 호출하는 측에서는 단순히 `null` 전달 대신 `Optional.empty()`를 전달해야 하는 부담이 생기며, 결국 `null`을 사용하든 `Optional.empty()`를 사용하든 큰 차이가 없어 가독성만 떨어진다.
+
+#### 잘못 사용 예시
+```java
+public void processOrder(Optional<Long> orderId) {
+    if (orderId.isPresent()) {
+        System.out.println("Order ID:" + orderId.get());
+    } else {
+        System.out.println("Order ID is Empty()");
+    }
+}
+```
+
+#### 권장 예시
+* 오버로드 된 메서드를 만드는 경우
+* 명시적으로 `null` 허용 여부를 문서화하는 방식을 택한다.
+
+```java
+public void processOrder(Long orderId) {
+    System.out.println("Order ID:" + orderId);
+}
+
+public void processOrder() {
+    System.out.println("Order ID is Empty()");
+}
+
+
+public void processOrder(Long orderId) {
+    if (orderId == null) {
+        System.out.println("Order ID is empty!");
+        return;
+    }
+    System.out.println("Order ID: " + orderId);
+}
+```
+
+#### 컬렉션(Collection)이나 배열 타입을 `Optional`로 감싸지 말기
+* `List<T>`, `Set<T>`, `Map<K, V>` 등 컬렉션 자체는 비어있는 상태(empty)를 표현할 수 있다.
+* `Collection.emptyList()`를 사용하면 된다.
+
+#### 잘못 사용 예시
+```java
+public Optional<List<String>> getUserRoles(String userId) {
+    List<String> userRolesList ...;
+    if (foundUser) {
+        return Optional.of(userRolesList);
+    } else {
+        return Optional.empty();
+    }
+}
+
+Optional<List<String>> optList = getUserRoles("someUser");
+    if (optList.isPresent()){
+        // ...
+    }
+```
+
+#### 권장 예시
+```java
+public List<String> getUserRoles(String userId) {
+    // ...
+    if (!foundUser) {
+        // 권장: 빈 리스트 반환
+        return Collections.emptyList();
+    }
+    return userRolesList;
+}
+```
+
+#### 4. isPresent()와 get() 조합을 직접 사용하지 않기
+* `Optional`의 `get()` 메서드는 가급적 사용하지 않아야 한다.
+* `if (opt.isPresent()) { opt.get() } else { ... }`는 사실상 `null` 체크와 다를바 없다
+* 깜빡하면 `NoSearchElementException` 같은 예외가 발생할 수 있다.
+* 대신 `orElse`, `orElseGet`, `orElseThrow`, `ifPresentOrElse`, `map`, `filter` 등의 메서드를 활용하라
+
+#### 잘못 사용 예시
+```java
+public static void main(String[] args) {
+    Optional<String> optStr = Optional.ofNullable("Hello");
+    if (optStr.isPresent()) {
+        System.out.println(optStr.get());
+    } else {
+        System.out.println("Nothing");
+    }
+}
+```
+#### 권장 예시
+```java
+public static void main(String[] args) {
+    Optional<String> optStr = Optional.ofNullable("Hello");
+
+    // 1) orElse
+    System.out.println(optStr.orElse("Nothing"));
+
+    // 2) ifPresentOrElse
+    optStr.ifPresentOrElse(
+            System.out::println,
+            () -> System.out.println("Nothing")
+    );
+
+    // 3) map
+    int length = optStr.map(String::length).orElse(0);
+    System.out.println("Length: " + length);
+}
+```
+
+#### 5. `orElseGet()` vs `orElse()` 차이를 분명히 이해하기
+* `orElse(T other)`는 항상 `other`를 즉시 평가한다.
+* `orElseGet(Supplier<? extends T> supplier)`는 지연 평가한다.
+
+#### 6. 무조건 Optional이 좋은 것은 아니다.
+* `Optional`은 분명히 편의성과 안전성을 높여주지만, 모든 곳에서 "무조건" 사용하는 것은 오히려 코드 복잡성을 증가 시킬 수 있다.
+* 다음과 같은 `Optional` 사용이 오히려 불필요할 수 있다.
+  1. 항상 값이 있는 상황
+  2. 값이 없으면 예외를 던지는 것이 더 자연스러운 상황
+  3. 흔히 비는 경우가 아니라 흔히 채워져 있는 경우
+  4. 성능이 극도로 중요한 로우레벨 코드
+
