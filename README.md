@@ -3173,3 +3173,326 @@ public static void main(String[] args) {
   3. 흔히 비는 경우가 아니라 흔히 채워져 있는 경우
   4. 성능이 극도로 중요한 로우레벨 코드
 
+# 디폴트 메서드
+## 디폴트 메서드가 등장한 이유
+자바 8부터는 인터페이스에 메서드 본문을 가질 수 있도록 허용해 주어, 기존 코드를 깨뜨리지 않고 새 기능을 추가할 수 있게 되었다.
+
+자바 8 이전까지는 인터페이스에 새로운 메서드를 추가하면, 해당 인터페이스를 구현한 모든 클래스에서 그 메서드를 구현해야 했다.
+인터페이스의 이런 엄격한 규칙 때문에, 그 동안 자바 인터페이스에 새로운 기능을 추가하지 못하는 일이 발생하게 되었다.
+
+## 디폴트 메서드 소개
+디폴트 메서드의 도입 이유
+* 하위 호환성 보장
+  * 인터페이스에 새로운 메서드가 추가되더라도, 기존 코드가 깨지지 않도록 하기 위한 목적으로 디폴트 메서드가 도입되었다.
+* 라이브러리 확장성
+  * 사용자들이 서드파티 라이브러리 구현체가 일일이 수정하지 않아도 되도록 만들었다.
+* 람다와 스트림 API 연계
+  * 자바 8에서 함께 도임된 람다와 스트림 API를 보다 편리하게 활용하기 위해 인터페이스에 구현 로직을 제공할 필요가 있었다.
+* 설계 유연성 향상
+  * 디폴트 메서드를 통해 인터페이스에서도 일부 공통 동작 방식을 정의할 수 있게 되었다.
+
+## 디폴트 메서드의 올바른 사용법
+1. 하위 호환성을 위해 최소한으로 사용
+   * 디폴트 메서드는 주로 이미 배포된 인터페이스에 새로운 메서드를 추가하면 기존 구현체 코드를 깨뜨리지 않기 위한 목적으로 만들어졌다.
+   * 새 메서드가 필요한 상황이고, 기존 구현 클래스가 많은 상황이 아니라면, 원칙적으로는 각각 구현하거나, 또는 추상 메서드를 추가하는 것을 고려하자.
+   * 불필요한 디폴트 메서드 남용은 코드 복잡도를 높일 수 있다.
+2. 인터페이스는 여전히 추상화의 역할
+   * 디폴트 메서드는 어디까지나 하위 호환을 위한 기능이나, 공통으로 쓰기 쉬운 간단한 로직을 제공하는 정도가 이상적이다.
+3. 다중 상속(충돌) 문제
+   * 하나의 클래스가 여러 인터페이스를 동시에 구현하는 상황에서, 서로 다른 인터페이스에 동일한 시그니처의 디폴트 메서드가 존재하면 충돌이 일어난다.
+   * 이 경우 구현 클래스에 반드시 메서드를 재정의 해야 한다. 그리고 직접 구현 로직을 작성하거나 또는 어떤 인터페이스의 디폴트 메서드를 쓸 것인지 명시해 주어야 한다.
+4. 디폴트 메서드에 상태(state)를 두지 않기
+   * 인터페이스는 일반적으로 상태 없이 동작만 정의하는 추상화 계층이다.
+   * 인터페이스에 정의하는 디폴트 메서드도 "구현"을 일부 제공할 뿐, 인스턴스 변수를 활용하거나 여러 차례 호출시 상태에 따라 동작이 달라지는 등의 동작은 지양해야 한다.
+   * 이런 로직이 필요하다면 클래스(추상 클래스 등)로 옮기는 것이 더 적절하다.
+
+# 병렬 스트림
+## 단일 스트림
+```java
+public class ParallelMain1 {
+
+    public static void main(String[] args) {
+        long startTime = System.currentTimeMillis();
+
+        int sum = IntStream.rangeClosed(1, 8)
+                .map(HeavyJob::heavyTask)
+                .sum();
+
+        long endTime = System.currentTimeMillis();
+        log("time: " + (endTime - startTime) + "ms, sum: " + sum);
+    }
+}
+```
+```
+11:27:26.342 [     main] calculate 1 -> 10
+11:27:27.357 [     main] calculate 2 -> 20
+11:27:28.357 [     main] calculate 3 -> 30
+11:27:29.372 [     main] calculate 4 -> 40
+11:27:30.375 [     main] calculate 5 -> 50
+11:27:31.377 [     main] calculate 6 -> 60
+11:27:32.390 [     main] calculate 7 -> 70
+11:27:33.404 [     main] calculate 8 -> 80
+11:27:34.409 [     main] time: 8082ms, sum: 360
+```
+## 스레드 직접 사용
+```java
+public class ParallelMain2 {
+
+    public static void main(String[] args) throws InterruptedException {
+        long startTime = System.currentTimeMillis();
+
+        // 1. Fork 작업을 분할한다.
+        SumTask task1 = new SumTask(1, 4);
+        SumTask task2 = new SumTask(5, 8);
+
+        Thread thread1 = new Thread(task1, "thread-1");
+        Thread thread2 = new Thread(task2, "thread-2");
+
+        // 2. 분할한 작업을 처리한다.
+        thread1.start();
+        thread2.start();
+
+        // 3. joni - 처리한 결과를 합친다.
+        thread1.join();
+        thread2.join();
+        log("main 스레드 대기 완료");
+        int sum = task1.result + task2.result;
+        
+        long endTime = System.currentTimeMillis();
+        log("time: " + (endTime - startTime) + "ms, sum: " + sum);
+    }
+
+    private static class SumTask implements Runnable {
+        int startValue;
+        int endValue;
+        int result = 0;
+
+        public SumTask(int startValue, int endValue) {
+            this.startValue = startValue;
+            this.endValue = endValue;
+        }
+
+        @Override
+        public void run() {
+            log("작업 시작");
+            int sum = 0;
+            for (int i = startValue; i <= endValue; i++) {
+                int calculated = HeavyJob.heavyTask(i);
+                sum += calculated;
+            }
+            result = sum;
+            log("작업 완료 result = " + result);
+        }
+    }
+}
+```
+```
+11:34:15.446 [ thread-1] 작업 시작
+11:34:15.446 [ thread-2] 작업 시작
+11:34:15.455 [ thread-2] calculate 5 -> 50
+11:34:15.456 [ thread-1] calculate 1 -> 10
+11:34:16.457 [ thread-1] calculate 2 -> 20
+11:34:16.457 [ thread-2] calculate 6 -> 60
+11:34:17.460 [ thread-1] calculate 3 -> 30
+11:34:17.460 [ thread-2] calculate 7 -> 70
+11:34:18.464 [ thread-2] calculate 8 -> 80
+11:34:18.464 [ thread-1] calculate 4 -> 40
+11:34:19.479 [ thread-2] 작업 완료 result = 260
+11:34:19.479 [ thread-1] 작업 완료 result = 100
+11:34:19.480 [     main] main 스레드 대기 완료
+11:34:19.482 [     main] time: 4050ms, sum: 360
+```
+## 스레드 풀 사용
+```java
+public class ParallelMain3 {
+
+    public static void main(String[] args) {
+        // 스레드풀 준비
+        try (ExecutorService es = Executors.newFixedThreadPool(2)) {
+            // 1. Fork 작업을 분할한다.
+            long startTime = System.currentTimeMillis();
+
+            SumTask task1 = new SumTask(1, 4);
+            SumTask task2 = new SumTask(5, 8);
+
+            // 2. 분할한 작업을 처리한다.
+            Future<Integer> future1 = es.submit(task1);
+            Future<Integer> future2 = es.submit(task2);
+
+            // 3. join - 처리한 결과를 합친다. get: 결과가 나올 때까지 대기한다.
+            Integer result1 = future1.get();
+            Integer result2 = future2.get();
+            int sum = result1 + result2;
+
+            long endTime = System.currentTimeMillis();
+            log("time: " + (endTime - startTime) + "ms, sum: " + sum);
+        } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static class SumTask implements Callable<Integer> {
+        int startValue;
+        int endValue;
+
+        public SumTask(int startValue, int endValue) {
+            this.startValue = startValue;
+            this.endValue = endValue;
+        }
+
+        @Override
+        public Integer call() {
+            log("작업 시작");
+            int sum = 0;
+            for (int i = startValue; i <= endValue; i++) {
+                int calculated = HeavyJob.heavyTask(i);
+                sum += calculated;
+            }
+            return sum;
+        }
+    }
+}
+```
+```
+11:41:30.873 [pool-1-thread-1] 작업 시작
+11:41:30.873 [pool-1-thread-2] 작업 시작
+11:41:30.883 [pool-1-thread-1] calculate 1 -> 10
+11:41:30.883 [pool-1-thread-2] calculate 5 -> 50
+11:41:31.892 [pool-1-thread-2] calculate 6 -> 60
+11:41:31.892 [pool-1-thread-1] calculate 2 -> 20
+11:41:32.906 [pool-1-thread-2] calculate 7 -> 70
+11:41:32.906 [pool-1-thread-1] calculate 3 -> 30
+11:41:33.907 [pool-1-thread-2] calculate 8 -> 80
+11:41:33.907 [pool-1-thread-1] calculate 4 -> 40
+11:41:34.922 [     main] time: 4064ms, sum: 360
+```
+## Fork/Join 패턴
+분할(Fork), 처리(Execute), 모음(Join)
+이렇게 분할(Fork) -> 처리(Execute) -> 모음(Join)의 단계로 이루어진 멀티스레딩 패턴을 Fork/Join 패턴이라고 부른다.
+이 패턴은 병렬 프로그래밍에서 매우 효율적인 방식으로, 복잡한 작업을 병렬적으로 처리할 수 있게 해준다.
+
+## Fork/Join 프레임워크 - 소개
+자바의 Fork/Join 프레임워크는 자바 7부터 도입된 `java.util.concurrent` 패키지의 일부로, 멀티코어 프로세서를 효율적으로 활요하기 위한 병렬 처리 프레임워크이다.
+
+#### 분할 정복(Divide and Conquer) 전략
+* 큰 작업을 작은 단뒤로 재귀적으로 분할
+* 각 작은 작업은 결과를 합쳐 최종 결과를 생성
+* 멀티코어 환경에서 작업을 효율적으로 분산 처리
+
+#### 작업 훔치기(Work Stealing) 알고리즘
+* 각 스레드는 자신의 작업 큐를 가짐
+* 작업이 없는 스레드는 다른 바쁜 스레드의 큐에서 작업을 훔쳐와서 대신 처리
+* 부하 균현을 자동으로 조절하여 효율 향상
+
+#### 주요 클래스
+* `ForkJoinPool`
+* `ForkJoinTask`
+  * `RecursiveTask`
+  * `RecursiveAction`
+
+#### ForkJoinPool
+* Fork/Join 작업을 수행하는 특수한 `ExecutorService` 스레드 풀
+* 작업 스케줄링 및 스레드 관리를 담당
+* 기본적으로 사용 가능한 프로세서 수 만큼 스레드 생성
+
+#### ForkJoinTask
+* `ForkJoinTask`는 Fork/Join 작업의 기본 추상 클래스다.
+* `Future`를 구현했다.
+* 개발자는 주로 다음 두 하위 클래스를 구현해서 사용한다.
+  * `RecursiveTask<V>`: 결과를 반환하는 작업
+  * `RecursiveAction`: 결과를 반환하지 않는 작업(void)
+
+#### RecursiveTask / RecursiveAction
+* `compute()` 메서드를 재정의해서 필요한 작업 로직을 작성한다.
+* 일반적으로 일정 기준값(임계값)을 두고, 작업 범위가 작으면 직접 처리하고, 크면 작업을 둘로 분할하여 각각 병렬로 처리하도록 구현한다.
+
+#### fork() / join() 메서드
+* `fork()`: 현재 스레드에서 다른 스레드로 작업을 분할하여 보내는 동작(비동기 실행)
+* `join()`: 분할된 작업이 끝날 때까지 기다린 후 결과를 가져오는 동작
+
+```java
+public class ForkJoinMain1 {
+
+    public static void main(String[] args) {
+        List<Integer> data = IntStream.rangeClosed(1, 8)
+                .boxed()
+                .toList();
+
+        log("[생성] " + data);
+
+        try (ForkJoinPool pool = new ForkJoinPool(10)) {
+            // ForkJoinPool 생성 및 작업 수행
+            long startTime = System.currentTimeMillis();
+
+            SumTask task = new SumTask(data);
+
+            // 병렬로 합을 구한후 결과 출력
+            Integer sum = pool.invoke(task);
+
+            long endTime = System.currentTimeMillis();
+            log("time: " + (endTime - startTime) + "ms, sum: " + sum);
+            log("pool " + pool);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+```
+```
+12:09:56.941 [     main] [생성] [1, 2, 3, 4, 5, 6, 7, 8]
+12:09:56.954 [ForkJoinPool-1-worker-1] [분할] [1, 2, 3, 4, 5, 6, 7, 8] -> left: [1, 2, 3, 4], right: [5, 6, 7, 8]
+12:09:56.954 [ForkJoinPool-1-worker-1] [처리 시작] [5, 6, 7, 8]
+12:09:56.954 [ForkJoinPool-1-worker-2] [처리 시작] [1, 2, 3, 4]
+12:09:56.963 [ForkJoinPool-1-worker-2] calculate 1 -> 10
+12:09:56.963 [ForkJoinPool-1-worker-1] calculate 5 -> 50
+12:09:57.968 [ForkJoinPool-1-worker-1] calculate 6 -> 60
+12:09:57.968 [ForkJoinPool-1-worker-2] calculate 2 -> 20
+12:09:58.969 [ForkJoinPool-1-worker-2] calculate 3 -> 30
+12:09:58.969 [ForkJoinPool-1-worker-1] calculate 7 -> 70
+12:09:59.970 [ForkJoinPool-1-worker-2] calculate 4 -> 40
+12:09:59.970 [ForkJoinPool-1-worker-1] calculate 8 -> 80
+12:10:00.976 [ForkJoinPool-1-worker-1] [처리 완료] [5, 6, 7, 8] -> sum: 260
+12:10:00.976 [ForkJoinPool-1-worker-2] [처리 완료] [1, 2, 3, 4] -> sum: 100
+12:10:00.978 [ForkJoinPool-1-worker-1] LEFT[ [1, 2, 3, 4] ] + RIGHT[ [5, 6, 7, 8] ] = 360
+12:10:00.979 [     main] time: 4034ms, sum: 360
+12:10:00.979 [     main] pool java.util.concurrent.ForkJoinPool@439f5b3d[Running, parallelism = 10, size = 3, active = 0, running = 0, steals = 2, tasks = 0, submissions = 0]
+```
+
+## Fork/Join 프레임워크 - 작업 훔치기
+```java
+public class SumTask extends RecursiveTask<Integer> {
+    //private static final int THRESHOLD = 4; // 임계값
+    private static final int THRESHOLD = 2; // 임계값 변경
+    ...
+}
+```
+```
+12:17:42.471 [     main] [생성] [1, 2, 3, 4, 5, 6, 7, 8]
+12:17:42.486 [ForkJoinPool-1-worker-1] [분할] [1, 2, 3, 4, 5, 6, 7, 8] -> left: [1, 2, 3, 4], right: [5, 6, 7, 8]
+12:17:42.487 [ForkJoinPool-1-worker-1] [분할] [5, 6, 7, 8] -> left: [5, 6], right: [7, 8]
+12:17:42.488 [ForkJoinPool-1-worker-2] [분할] [1, 2, 3, 4] -> left: [1, 2], right: [3, 4]
+12:17:42.488 [ForkJoinPool-1-worker-1] [처리 시작] [7, 8]
+12:17:42.488 [ForkJoinPool-1-worker-3] [처리 시작] [5, 6]
+12:17:42.488 [ForkJoinPool-1-worker-2] [처리 시작] [3, 4]
+12:17:42.488 [ForkJoinPool-1-worker-4] [처리 시작] [1, 2]
+12:17:42.500 [ForkJoinPool-1-worker-4] calculate 1 -> 10
+12:17:42.500 [ForkJoinPool-1-worker-1] calculate 7 -> 70
+12:17:42.500 [ForkJoinPool-1-worker-2] calculate 3 -> 30
+12:17:42.500 [ForkJoinPool-1-worker-3] calculate 5 -> 50
+12:17:43.502 [ForkJoinPool-1-worker-4] calculate 2 -> 20
+12:17:43.502 [ForkJoinPool-1-worker-3] calculate 6 -> 60
+12:17:43.502 [ForkJoinPool-1-worker-1] calculate 8 -> 80
+12:17:43.502 [ForkJoinPool-1-worker-2] calculate 4 -> 40
+12:17:44.514 [ForkJoinPool-1-worker-4] [처리 완료] [1, 2] -> sum: 30
+12:17:44.514 [ForkJoinPool-1-worker-2] [처리 완료] [3, 4] -> sum: 70
+12:17:44.514 [ForkJoinPool-1-worker-1] [처리 완료] [7, 8] -> sum: 150
+12:17:44.514 [ForkJoinPool-1-worker-3] [처리 완료] [5, 6] -> sum: 110
+12:17:44.517 [ForkJoinPool-1-worker-1] LEFT[ [5, 6] ] + RIGHT[ [7, 8] ] = 260
+12:17:44.517 [ForkJoinPool-1-worker-2] LEFT[ [1, 2] ] + RIGHT[ [3, 4] ] = 100
+12:17:44.517 [ForkJoinPool-1-worker-1] LEFT[ [1, 2, 3, 4] ] + RIGHT[ [5, 6, 7, 8] ] = 360
+12:17:44.519 [     main] time: 2042ms, sum: 360
+12:17:44.520 [     main] pool java.util.concurrent.ForkJoinPool@439f5b3d[Running, parallelism = 10, size = 4, active = 0, running = 0, steals = 4, tasks = 0, submissions = 0]
+```
+
+## 자바 병렬 스트림
+## 병렬 스트림 사용시 주의점
