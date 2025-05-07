@@ -3493,6 +3493,127 @@ public class SumTask extends RecursiveTask<Integer> {
 12:17:44.519 [     main] time: 2042ms, sum: 360
 12:17:44.520 [     main] pool java.util.concurrent.ForkJoinPool@439f5b3d[Running, parallelism = 10, size = 4, active = 0, running = 0, steals = 4, tasks = 0, submissions = 0]
 ```
+## 작업 훔치기 알고리즘
+작업량이 불균형할 경우 작업 훔치기 알고리즘이 동작하여 유휴 스레드가 다른 바쁜 스레드의 작업을 가져와 처리함으로써 전체 효율성을 높일 수 있다.
+
+## Fork/Join 프레임워크 - 공용 풀
+자바 8에서는 공용 풀(Common pool)이라는 개념이 도임되었는데, 이는 Fork/Join 작업을 위한 자바가 제공하는 기본 스레드 풀이다.
+```java
+ForkJoinPool commonPool = ForkJoinPool.commonPool();
+```
+#### Fork/Join 공용 풀의 특징
+* 시스템 전체에 공유: 애플리케이션 내에서 단일 인스턴스로 공유 되어 사용된다.
+* 자동 생성: 별도로 생성하지 않아도 `ForkJoinPool.commonPool()`을 통해 접근할 수 있다.
+* 편리한 사용: 별도의 풀을 만들지 않고도 `RecursiveTask`/`RecursiveAction`을 사용할 때 기본적으로 이 공용 풀이 사용된다.
+* 병렬 스트림 활용: 자바 8의 병렬 스트림은 내부적으로 이 공용 푸을 사용한다.
+* 자원 효율성: 여러 곳에서 별도의 풀을 생성하는 대신 공용 풀을 사용함으로써 시스템 자원을 효율적으로 관리할 수 있다.
+* 병렬 수준 자동 설정: 기본적으로 시스템의 가용 프로세서 수에서 1을 뺀 값으로 병렬 수준이 설정된다.
+
+```java
+public static void main(String[] args) {
+
+    List<Integer> data = IntStream.rangeClosed(1, 8)
+            .boxed()
+            .toList();
+
+    log("[생성] " + data);
+
+    SumTask task = new SumTask(data);
+    Integer result = task.invoke();// 공용 풀 사용
+    log("최종 결과: " + result);
+
+}
+```
+```
+17:32:29.120 [     main] [생성] [1, 2, 3, 4, 5, 6, 7, 8]
+17:32:29.135 [     main] [분할] [1, 2, 3, 4, 5, 6, 7, 8] -> left: [1, 2, 3, 4], right: [5, 6, 7, 8]
+17:32:29.138 [     main] [분할] [5, 6, 7, 8] -> left: [5, 6], right: [7, 8]
+17:32:29.138 [ForkJoinPool.commonPool-worker-1] [분할] [1, 2, 3, 4] -> left: [1, 2], right: [3, 4]
+17:32:29.139 [     main] [처리 시작] [7, 8]
+17:32:29.139 [ForkJoinPool.commonPool-worker-1] [처리 시작] [3, 4]
+17:32:29.139 [ForkJoinPool.commonPool-worker-2] [처리 시작] [1, 2]
+17:32:29.139 [ForkJoinPool.commonPool-worker-3] [처리 시작] [5, 6]
+17:32:29.148 [ForkJoinPool.commonPool-worker-3] calculate 5 -> 50
+17:32:29.148 [ForkJoinPool.commonPool-worker-2] calculate 1 -> 10
+17:32:29.148 [     main] calculate 7 -> 70
+17:32:29.148 [ForkJoinPool.commonPool-worker-1] calculate 3 -> 30
+17:32:30.153 [ForkJoinPool.commonPool-worker-3] calculate 6 -> 60
+17:32:30.153 [     main] calculate 8 -> 80
+17:32:30.153 [ForkJoinPool.commonPool-worker-2] calculate 2 -> 20
+17:32:30.153 [ForkJoinPool.commonPool-worker-1] calculate 4 -> 40
+17:32:31.156 [ForkJoinPool.commonPool-worker-1] [처리 완료] [3, 4] -> sum: 70
+17:32:31.156 [ForkJoinPool.commonPool-worker-2] [처리 완료] [1, 2] -> sum: 30
+17:32:31.156 [ForkJoinPool.commonPool-worker-3] [처리 완료] [5, 6] -> sum: 110
+17:32:31.156 [     main] [처리 완료] [7, 8] -> sum: 150
+17:32:31.158 [ForkJoinPool.commonPool-worker-1] LEFT[ [1, 2] ] + RIGHT[ [3, 4] ] = 100
+17:32:31.158 [     main] LEFT[ [5, 6] ] + RIGHT[ [7, 8] ] = 260
+17:32:31.158 [     main] LEFT[ [1, 2, 3, 4] ] + RIGHT[ [5, 6, 7, 8] ] = 360
+17:32:31.159 [     main] 최종 결과: 360
+```
+공용 풀은 JVM이 종료될 때까지 계속 유지되므로, 별도로 풀을 종료하지 않아도 된다.
+공용 풀을 활용하면, 별도로 풀을 생성/관리하는 코드를작성하지 않아도 간편하게 병렬 처리를 구현할 수 있다.
 
 ## 자바 병렬 스트림
+병렬 스트림은 Fork/Join 공용 풀을 사용해서 병렬 연산을 수행한다.
+```java
+public static void main(String[] args) {
+    int processorsCount = Runtime.getRuntime().availableProcessors();
+    ForkJoinPool commonPool = ForkJoinPool.commonPool();
+    log("processorCount = " + processorsCount + ", commonPool = " + commonPool.getParallelism());
+
+    long startTime = System.currentTimeMillis();
+
+    int sum = IntStream.rangeClosed(1, 8)
+            .parallel()
+            .map(HeavyJob::heavyTask)
+            .sum();
+
+    long endTime = System.currentTimeMillis();
+    log("time: " + (endTime - startTime) + "ms, sum: " + sum);
+}
+```
+```
+17:43:06.104 [     main] processorCount = 24, commonPool = 23
+17:43:06.109 [     main] calculate 6 -> 60
+17:43:06.109 [ForkJoinPool.commonPool-worker-1] calculate 3 -> 30
+17:43:06.109 [ForkJoinPool.commonPool-worker-4] calculate 4 -> 40
+17:43:06.109 [ForkJoinPool.commonPool-worker-2] calculate 2 -> 20
+17:43:06.109 [ForkJoinPool.commonPool-worker-5] calculate 5 -> 50
+17:43:06.109 [ForkJoinPool.commonPool-worker-3] calculate 8 -> 80
+17:43:06.109 [ForkJoinPool.commonPool-worker-6] calculate 7 -> 70
+17:43:06.110 [ForkJoinPool.commonPool-worker-7] calculate 1 -> 10
+17:43:07.122 [     main] time: 1014ms, sum: 360
+```
+* 직접 스레드를 만들 필요 없이 스트림에 `parallel()` 메서드만 호출하면, 스트림이 자동으로 병렬 처리된다.
+
 ## 병렬 스트림 사용시 주의점
+#### 주의사항 - Fork/Join 프레임워크는 CPU 바운드 작업에만 사용해라
+Fork/Join 공용 풀은 CPU 바운드 작업(계산 집약적인 작업)을 위해 설계되었다.
+이러한 작업은 CPU 사용률이 높고 I/O 대기 시간이 적다.
+CPU 바운드 작업의 경우, 물리적인 CPU 코어와 비슷한 수의 스레드를 사용하는 것이 최적의 성능을 발휘할 수 있다.
+스레드 수가 코어 수보다 많아지면 컨텍스트 스위칭 비용이 증가하고, 스레드 간 경쟁으로 인한 경쟁으로 인해 오히려 성능이 저하될 수 있기 때문이다.
+
+I/O 작업처럼 블로킹 대기 시간이 긴 작업을 `ForkJoinPool`에서 처리하면 다음과 같은 문제가 발생한다.
+1. 스레드 플로킹에 따른 CPU 낭비
+   * `ForkJoinPool`은 CPU 코어 수에 맞춰 제한된 개수의 스레드를 사용한다
+   * I/O 작업으로 스레드가 블로킹되면 CPU가 놀게 되어, 전체 병렬 처리 효율이 크게 떨어진다.
+2. 컨텍스트 스위칭 오버헤드 증가
+   * I/O 작업 때문에 스레드를 늘리면, 실제 연산보다 대기 시간이 길어지는 상황이 발생할 수 있다.
+   * 스레드가 많아질수록 컨텍스트 스위칭 비용도 증가하여 오히려 성능이 떨어질 수 있다.
+3. 작업 훔치기 기법 무력화
+   * `ForkJoinPool`이 제공하는 작업 훔치기 알고리즘은, CPU 바운드 작업에서 빠르게 작업 단위를 계속 처리하도록 설계되었다.
+   * I/O 대기 시간이 많은 작업은 스레드가 I/O로 인해 대기하고 있는 경우가 많아, 작업 훔치기가 빛을 발휘하기 어렵고, 결과적으로 병렬 처리의 장점을 살리기 어렵다.
+4. 분할-정복 이점 감소
+   * Fork/Join 방식을 통해 작업을 잘게 나누어도, I/O 병목이 발생하면 CPU 병렬화 이점이 크게 줄어든다.
+   * 오히려 분할된 작업들이 각기 I/O 대기를 반복하면서, `fork()`, `join()`에 따른 오버헤드만 증가할 수 있다.
+
+> CPU 바운드 작업이라면 `ForkJoinPool`을 통해 병렬 계산을 극대화 할 수 있지만, I/O 바운드 작업은 별도의 전용 스레드 풀을 사용하는 편이 더 적합하다. 예) Executors.newFixedThreadPool() 등
+
+#### 핵심 문제점
+* 공용 풀 병목 현상: 모든 병렬 스트림이 동일한 공용 풀을 공유하므로, 요청이 많아질수록 병목 현상이 발생한다.
+* 자원 경쟁: 여러 요청이 제한된 스레드 풀을 두고 경쟁하면서 요청의 성능이 저하된다.
+* 예측 불가능한 성능: 같은 작업이라도 동시에 실행되는 다른 작업의 수에 따라 처리 시간이 크게 달라진다.
+
+### 별도의 풀 사용
+* I/O 바운드처럼 대기가 긴 경우에는 전용 스레드 풀(ExecutorService)을 만들어 사용하는 것을 권장한다.
+* 스레드 풀의 크기, 스레드 생성 정책, 큐 타입 등을 상황에 맞게 튜닝할 수 있어 확장성과 안정성이 높아진다.

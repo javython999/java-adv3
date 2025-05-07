@@ -1,0 +1,28 @@
+package parallel.forkjoin;
+
+import java.util.List;
+import java.util.concurrent.ForkJoinPool;
+import java.util.stream.IntStream;
+
+import static util.MyLogger.log;
+
+public class ForkJoinMain2 {
+
+    public static void main(String[] args) {
+
+        //int processorsCount = Runtime.getRuntime().availableProcessors();
+        //ForkJoinPool commonPool = ForkJoinPool.commonPool();
+        //log("processorCount = " + processorsCount + ", commonPool = " + commonPool.getParallelism());
+
+        List<Integer> data = IntStream.rangeClosed(1, 8)
+                .boxed()
+                .toList();
+
+        log("[생성] " + data);
+
+        SumTask task = new SumTask(data);
+        Integer result = task.invoke();// 공용 풀 사용
+        log("최종 결과: " + result);
+
+    }
+}
