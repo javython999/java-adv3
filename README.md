@@ -3617,3 +3617,516 @@ I/O 작업처럼 블로킹 대기 시간이 긴 작업을 `ForkJoinPool`에서 �
 ### 별도의 풀 사용
 * I/O 바운드처럼 대기가 긴 경우에는 전용 스레드 풀(ExecutorService)을 만들어 사용하는 것을 권장한다.
 * 스레드 풀의 크기, 스레드 생성 정책, 큐 타입 등을 상황에 맞게 튜닝할 수 있어 확장성과 안정성이 높아진다.
+
+# 함수형 프로그래밍
+## 프로그래밍 패러다임
+프로그래밍 패러다임이란 프로그램을 구성하고 구현하는 사상이나 접근법을 말한다.
+대표적인 프로그래밍 패러다임은 크게 다음과 같이 분류할 수 있다.
+
+* 명령형 프로그래밍(Imperative)
+  * 절차지향 프로그래밍(Procedural)
+  * 객체지향 프로그래밍(OOP)
+* 선언형 프로그래밍
+  * 함수형 프로그래밍(Functional)
+
+#### 명령형 프로그래밍
+* 프로그램이 어떻게(How) 동작해야 하는지 세세한 제어 흐름을 통해 기술
+* 대표적인 하위 스타일로 절차지향과 객체지향을 포함
+  * 절차지향은 프로시저, 함수를 기반으로 로직을 절차적으로 구성
+  * 객체지향은 데이터(필드)와 함수(메서드)를 하나로 묶은 객체를 중심으로 설계
+
+#### 선언형 프로그래밍
+* 무엇(What)을 해야 하는지 초점에 맞추어, 목적만 선언하고 구현 방식은 추상화
+* 대표적인 예로 함수형 프로그래밍, SQL, HTML 등이 있음
+  * 함수형 프로그래밍은 순수 함수를 조합하며, 부수 효과와 가변 상태를 최소화하여 로직을 표현
+
+### 명령형 프로그래밍
+* 핵심 개념: 어떻게(How) 할 것인지 구체적으로 명령을 내리는 방식
+* 특징
+    * 프로그램이 어떤 순서와 단계로 동작해야하는지를 구체적인 제어 흐름(조건문, 반복문 등)으로 기술
+    * 변수의 값이 바뀌면서 상태가 변해감
+    * CPU 동작 방식(메모리 수정, 제어 흐름에 따른 실행)과 유사하여, 전통적인 하드웨어와의 직관적인 일치
+    * 예시:C, C++, Java 등 대부분의 언어가 명령형 특징성을 지님
+* 장단점
+    * 장점: 컴퓨터의 동작 방식과 매우 유사해 이해하기 직관적, 제어 흐름을 상세히 제어하기 쉽다.
+    * 단점: 프로그램 규모가 커지면 상태 변경에 따른 복잡도가 증가
+
+### 절차지향 프로그래밍
+* 핵심 개념: 명령형 프로그래밍의 대표적인 형태로, 프로그램을 절차와 함수 단위로 나누어 순서대로 실행
+* 특징
+  * 명령형 패더라임 하위 개념으로 볼 수 있음
+  * 공통된 로직을 재사용하기 위해 함수나 프로시저를 만들어 사용
+  * "데이터와 절차가 분리되어 있다"라는 말로 자주 설명됨. 즉, 함수(절차)는 별도로 정의해 두고, 여러 데이터에 대해 같은 절차를 적용
+  * 예시:C, Pascal 등
+* 장단점
+  * 장점: 구조적 프로그래밍 기법(모듈화, 함수화)으로 코드 가독성 상승, 코드 재사용성 향상
+  * 단점: 데이터와 로직이 명확히 분리되지 않을 때, 코드 유지 보수가 어렵고 대형 프로젝트에서 복잡성 증가
+
+### 객체지향 프로그래밍
+* 핵심 개념: 프로그램을 객체(Object)라는 추상화된 단위로 구성, 각 객체는 상태(필드, 속성)와 행동(메서드)을 갖고 있으며, 메시지 교환(메서드 호출)을 통해 상호작용
+* 특징
+  * 캡슐화, 추상화, 상속, 다형성과 같은 특징이 있음
+  * 데이터와 해당 데이터를 처리하는 함수를 하나의 객체로 묶어 관리해 유지보수성과 확장성을 높인다.
+  * 예시: Java, C++, C#
+* 장단점
+  * 장점: 객체라는 단위로 묶이는 코드 재사용성, 확장성, 유지보수성 우수, 대규모 시스템 설계에 적합
+  * 단점: 과도한 객체 분리나 복잡한 상속 구조등으로 인해 오히려 복잡도가 증가할 수 있음
+  
+### 선언형 프로그래밍
+* 핵심 개념: 무엇을(What)을 할 것인지를 기술하고 어떻게(How) 구현, 실행될지는 위임하는 방식
+* 특징
+  * 구체적인 제어 흐름(조건문, 반복문 등)을 직접 작성하기보다, 원하는 결과나 조건을 선언적으로 표현
+  * 상태 변화보다는 결과에 초점을 맞추어 코드를 작성
+  * 대표적인 예시: SQL, HTML
+  * 함수형 프로그래밍 등이 선언형 패러다임에 속하거나 밀접하게 관련됨
+* 장단점
+  * 장점: 구현의 복잡한 로직을 많이 숨길 수 있어, 높은 수준에서 문제 해결에 집중 가능. 비즈니스 로직을 직관적으로 표현하기 쉬움
+  * 단점: 언어나 환경이 제공하는 추상화 수준에 의존적이며, 내부 동작이 보이지 않을 경우 디버깅이 어려울 수 있음. 낮은 수준의 최적화나 세밀한 제어가 필요한 상황에서는 제약이 생길 수 도 있음
+
+### 함수형 프로그래밍
+* 핵심 개념: 무엇(What)을 할 것인지를 수학적 함수(Function)들로 구성하고, 부수 효과(Side Effect) 최소화 및 불변성(Immutable State)을 강조하는 프로그래밍 방식
+* 특징
+  * 선언형 접근에 가까움: 어떻게가 아니라 어떤 결과를 원한다고 선언
+  * 순수 함수를 중시: 같은 입력이 주어지면 항상 같은 출력
+  * 데이터는 불변하게 처리: 재할당 대신 새로운 데이터를 만들어 반환
+  * 함수가 일급시민으로 취급: 고차함수, 함수를 인자로 넘기거나 반환 가능
+  * 예시: Haskell, Clojure, Scala, Java
+* 장단점
+  * 장점: 상태 변화가 없거나 최소화되므로 디버깅과 테스트 용이, 병렬 처리 및 동시성 처리가 간단해지는 경향
+  * 단점: 명령형 사고방식에 익숙한 프로그래머에게는 초기 접근이 어려울 수 있음, 계산 과정에서의 메모리 사용이 증가할 수 있음
+
+'객체지향 프로그래밍 언어'라 함은 그 언어의 기본 구조와 철학이 객체지향 개념(클래스, 객체, 캡슐화, 다형성 등)을 중심으로 설계되어 있다는 것을 강조하는 표현이지, 그 언어가 다른 모든 패러다임을 전면 배제한다는 의미는 아니다.
+
+## 함수형 프로그래밍이란?
+함수형 프로그래밍은 프로그램을 함수를 조합해 만드는 방식에 초점을 두는 프로그래밍 패러다임이다.
+명령형 프로그래밍처럼 어떻게 할 것인지보다는, 필요한 결과를 얻기 위해 무엇을 계산한 것인가를 강조한다.
+함수를 일급시민으로 취급하고 불변 상태를 지향하며, 순수 함수를 중심에 두는 것이 주요 특징이다.
+
+자바는 명령형, 객체지향이 주된 패러다임이고, 거기에 람다 등 함수형 문법이 일부 도입된 "멀티 패러다임(Multi paradigm) 언어"이다. 따라서 자바는 객체지향 중심이지만, 부분적으로 함수형 특성을 지원하는 언어 정도로 이해하면 된다
+
+## 자바와 함수형 프로그래밍
+함수형 프로그래밍은 다음과 같은 특징이 있다.
+1. 순수 함수(Pure Function)
+2. 부수 효과(Side Effect) 최소화
+3. 불변성(Immutable State) 지향
+4. 일급 시민(First-class Citizen) 함수
+5. 선언형(Declarative) 접근
+6. 함수 합성(Composition)
+7. Lazy Evaluation(지연 평가) (선택적 특징)
+
+### 순수함수
+* 같은 인자를 주면 항상 같은 결과를 반환하는 함수이다.
+* 외부 상태(변할 수 있는 전역 변수 등)에 의존하거나, 외부 상태를 변경하는 부수효과가 없는 함수를 의미한다.
+
+```java
+public static void main(String[] args) {
+    Function<Integer, Integer> func = x -> x * 2;
+
+    System.out.println("result1 = " + func.apply(10));
+    System.out.println("result1 = " + func.apply(10));
+}
+```
+```
+result1 = 20
+result1 = 20
+```
+
+### 부수 효과(Side Effect) 효과
+* 함수형 프로그래밍에서는 상태 변화를 최소화하기 위해 변수나 객체를 변경하는 것을 지양한다.
+* 이로 인해 프로그램의 버그가 줄어들고, 테스트나 병렬 처리, 동시성 지원이 용이해진다.
+```java
+public static void main(String[] args) {
+
+    System.out.println("before count = " + count);
+
+    Function<Integer, Integer> func = x -> {
+        count++;
+        return x * 2;
+    };
+
+    func.apply(10);
+    System.out.println("after count = " + count);
+}
+```
+```
+before count = 0
+after count = 1
+```
+
+```java
+public static void main(String[] args) {
+
+    Function<Integer, Integer> func = x -> {
+        int result = x * 2;
+        
+        // 부수 효과
+        System.out.println("x = " + x + ", result = " + (x * 2));
+        return result;
+    };
+
+    func.apply(10);
+    func.apply(10);
+
+}
+```
+```
+x = 10, result = 20
+x = 10, result = 20
+```
+예제에서는 콘솔에 출력을 하는 동작 이 부수 효과이다. 출력은 결과값 자체와 무관하지만, 외부 세계(콘솔)에 영향을 미치므로 순수 함수로 보기는 어렵다.
+
+```java
+public static void main(String[] args) {
+
+    Function<Integer, Integer> func = x -> x * 2;
+    int x = 10;
+    Integer result = func.apply(x);
+    System.out.println("x = " + x + ", result = " + result);
+}
+```
+```
+x = 10, result = 20
+```
+이 예제에서는 연산을 담당하는 함수(func)가 외부 상태를 전혀 수정하지 않는 순수 함수한 시점에만 별도로 수행한다. 이렇게 지할 수 있다.
+
+```java
+public class SideEffectListMain {
+
+    public static void main(String[] args) {
+        List<String> list1 = new ArrayList<>();
+        list1.add("apple");
+        list1.add("banana");
+        System.out.println("before list1 = " + list1);
+        changeList1(list1);
+        System.out.println("after list1 = " + list1);
+        List<String> list2 = new ArrayList<>();
+        list2.add("apple");
+        list2.add("banana");
+        System.out.println("before list2 = " + list2);
+        List<String> result = changeList2(list2);
+        System.out.println("after list2 = " + list2);
+        System.out.println("result = " + result);
+    }
+
+    private static void changeList1(List<String> list) {
+        for (int i = 0; i < list.size(); i++) {
+            list.set(i, list.get(i) + "_complete");
+        }
+    }
+    private static List<String> changeList2(List<String> list) {
+        List<String> newList = new ArrayList<>();
+        for (String s : list) {
+            newList.add(s + "_complete");
+        }
+        return newList;
+    }
+}
+
+```
+```
+before list1 = [apple, banana]
+after list1 = [apple_complete, banana_complete]
+before list2 = [apple, banana]
+after list2 = [apple, banana]
+result = [apple_complete, banana_complete]
+```
+* `changeList1` 함수는 리스트 원본을 직접 변경함으로써 부수 효과를 일으킨다.
+* 반면 `changeList2` 함수는 새로운 리스트를 생성해서 반환함으로써, 원본 리스트를 변경하지 않는다.
+* 함수형 프로그래밍에서는 `changeList2`와 같은 방식이 권장된다.
+
+### 불변셩 지향
+* 데이터는 생성된 후 가능한 한 변경하지 않고, 변경이 필요한 경우 새로운 값을 생성해서 사용한다.
+* 가변 데이터 구조에서 발생할 수 있는 오류를 줄이고, 프로그램의 예측 가능성을 높여준다.
+* 불변성은 데이터를 변경하지 않기 때문에 부수 효과와도 관련이 있다.
+
+```java
+public class MutablePerson {
+
+    private String name;
+    private int age;
+
+    public MutablePerson(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public void setAge(int age) {
+        this.age = age;
+    }
+
+    @Override
+    public String toString() {
+        return "MutablePerson{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+}
+```
+```java
+public class ImmutablePerson {
+
+    private final String name;
+    private final int age;
+
+    public ImmutablePerson(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public ImmutablePerson withAge(int age) {
+        return new ImmutablePerson(name, age);
+    }
+
+    public ImmutablePerson withName(String name) {
+        return new ImmutablePerson(name, age);
+    }
+
+    @Override
+    public String toString() {
+        return "MutablePerson{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}';
+    }
+}
+```
+
+```java
+public static void main(String[] args) {
+    MutablePerson m1 = new MutablePerson("Kim", 10);
+    MutablePerson m2 = m1;
+
+    m2.setAge(11);
+    System.out.println("m1 = " + m1);
+    System.out.println("m2 = " + m2);
+
+    ImmutablePerson i1 = new ImmutablePerson("Lee", 20);
+    ImmutablePerson i2 = i1.withAge(21);
+
+    System.out.println("i1 = " + i1);
+    System.out.println("i2 = " + i2);
+
+}
+```
+```
+m1 = MutablePerson{name='Kim', age=11}
+m2 = MutablePerson{name='Kim', age=11}
+i1 = MutablePerson{name='Lee', age=20}
+i2 = MutablePerson{name='Lee', age=21}
+```
+
+```java
+public static void main(String[] args) {
+    MutablePerson m1 = new MutablePerson("Kim", 10);
+    MutablePerson m2 = new MutablePerson("Lee", 20);
+
+    List<MutablePerson> originList = List.of(m1, m2);
+    System.out.println("originList = " + originList);
+
+    List<MutablePerson> resultList = originList.stream()
+            .map(p -> {
+                p.setAge(p.getAge() + 1);
+                return p;
+            })
+            .toList();
+
+    System.out.println("=== 실행 후 ===");
+    System.out.println("originList = " + originList);
+    System.out.println("resultList = " + resultList);
+}
+```
+```
+originList = [MutablePerson{name='Kim', age=10}, MutablePerson{name='Lee', age=20}]
+=== 실행 후 ===
+originList = [MutablePerson{name='Kim', age=11}, MutablePerson{name='Lee', age=21}]
+resultList = [MutablePerson{name='Kim', age=11}, MutablePerson{name='Lee', age=21}]
+```
+```java
+public static void main(String[] args) {
+    ImmutablePerson i1 = new ImmutablePerson("Kim", 10);
+    ImmutablePerson i2 = new ImmutablePerson("Lee", 20);
+
+    List<ImmutablePerson> originList = List.of(i1, i2);
+    System.out.println("originList = " + originList);
+
+    List<ImmutablePerson> resultList = originList.stream()
+            .map(p -> p.withAge(p.getAge() + 1))
+            .toList();
+
+    System.out.println("=== 실행 후 ===");
+    System.out.println("originList = " + originList);
+    System.out.println("resultList = " + resultList);
+}
+```
+```
+originList = [MutablePerson{name='Kim', age=10}, MutablePerson{name='Lee', age=20}]
+=== 실행 후 ===
+originList = [MutablePerson{name='Kim', age=10}, MutablePerson{name='Lee', age=20}]
+resultList = [MutablePerson{name='Kim', age=11}, MutablePerson{name='Lee', age=21}]
+```
+
+### 일급 시민 함수
+* 함수가 일반 값(숫자, 문자열, 객체(자료구조) 등)과 동일한 지위를 가진다.
+* 함수를 변수에 대입하거나, 다른 함수의 인자로 전달하거나, 함수에서 함수를 반환하는 고차 함수를 자유롭게 사용할 수 있다.
+
+```java
+public class FirstClassCitizenMain {
+
+    public static void main(String[] args) {
+        // 함수를 변수에 담는다
+        Function<Integer, Integer> func = x -> x * 2;
+
+        // 함수를 인자로 전달
+        applyFunction(10, func);
+
+        // 함수를 반환
+        getFunc().apply(10);
+    }
+
+    // 고차 함수: 함수를 인자로 받음
+    public static Integer applyFunction(Integer input, Function<Integer, Integer> func) {
+        return func.apply(input);
+    }
+
+    // 고차 함수: 함수를 반환
+    private static Function<Integer, Integer> getFunc() {
+        return x -> x * 2;
+    }
+}
+```
+
+### 선언형 접근
+* 어떻게가 아닌 무엇을 계산할지 기술한다.
+* 복잡한 제어 구조나 상태 관리를 함수의 합성과 함수 호출로 대체하여 간결하고 가독성 높은 코드를 작성한다.
+
+```java
+public static void main(String[] args) {
+    List<Integer> numbers = List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+    // 명령형: for문과 조건 검사로 처리
+    List<Integer> result1 = new ArrayList<>();
+    for (Integer number : numbers) {
+        if (number % 2 == 0) {
+            result1.add(number * number);
+        }
+    }
+    System.out.println("Imperative result = " + result1);
+
+
+    // 선언형: 스트림 API 처리
+    List<Integer> result2 = numbers.stream()
+            .filter(n -> n % 2 == 0)
+            .map(n -> n * n)
+            .toList();
+    System.out.println("Declarative result = " + result2);
+}
+```
+```
+Imperative result = [4, 16, 36, 64, 100]
+Declarative result = [4, 16, 36, 64, 100]
+```
+
+### 함수 합성
+* 간단한 함수를 조합해 더 복접한 함수를 만드는 것을 권장한다.
+* 작은 단위의 함수들을 체이닝 하거나 파이프라이닝해서 재사용성을 높이고 코드 이해도를 높인다.
+
+```java
+public static void main(String[] args) {
+    // 1. x를 입력받아 x * x 하는 함수
+    Function<Integer, Integer> square = x -> x * x;
+
+    // 2. x를 입력받아 x + 1 하는 함수
+    Function<Integer, Integer> add = x -> x + 1;
+
+    // 함수 합성
+    // 1. compose()를 사용한 새로운 함수 생성
+    // 먼저 add 적용 후 square 적용하는 새로운 함수 newFunc1 생성
+    // square(add(2)) = square(3) = 9
+    Function<Integer, Integer> newFunc1 = square.compose(add);
+    System.out.println("newFunc1 결과: " + newFunc1.apply(2));
+
+    // 2. andThen()를 사용한 새로운 함수 생성
+    // 먼저 square 적용 후 add 적용하는 새로운 함수 newFunc2 생성
+    // add(square(2)) = add(4) = 5
+    Function<Integer, Integer> newFunc2 = square.andThen(add);
+    System.out.println("newFunc2 결과: " + newFunc2.apply(2));
+}
+```
+```
+newFunc1 결과: 9
+newFunc2 결과: 5
+```
+
+```java
+public static void main(String[] args) {
+
+    // 1. String -> Integer
+    Function<String, Integer> parseInt = Integer::parseInt;
+
+    // 2. Integer -> Integer(제곱)
+    Function<Integer, Integer> square = x -> x * x;
+
+    // 3. Integer -> String
+    Function<Integer, String> toString = x -> "결과:" + x;
+
+    // compose 혹은 andThen으로 합성하기
+    Function<String, String> finalFunc = parseInt.andThen(square).andThen(toString);
+
+    String result1 = finalFunc.apply("5");
+    System.out.println("result1 = " + result1);
+
+    String result2 = finalFunc.apply("10");
+    System.out.println("result2 = " + result2);
+
+    // 또 다른 조합으로 사용 가능
+    Function<String, Integer> stringToSquareFunc = parseInt.andThen(square);
+    Integer result3 = stringToSquareFunc.apply("5");
+    System.out.println("result3 = " + result3);
+
+}
+```
+```
+result1 = 결과:25
+result2 = 결과:100
+result3 = 25
+```
+
+### Lazy Evaluation(지연 평가) (선택적 특징)
+* 필요한 시점까지 계산을 미루는 평가 전략이다.
+* 불필요한 계산 비용을 줄인다.
+
+```java
+public static void main(String[] args) {
+    List<Integer> numbers = List.of(1, 2, 3, 4, 5);
+    Stream<Integer> stream = numbers.stream()
+            .filter(n -> {
+                System.out.println("filter: " + n);
+                return n % 2 == 0;
+            });
+    // 아직 출력된 것이 없음 (중간 연산만 설정된 상태)
+    // 최종 연산을 호출할 때 실제 동작 시작
+    List<Integer> evens = stream.toList();
+    // 여기서야 filter가 실제로 동작하며 콘솔에 filter 로그가 찍힘
+}
+```
